@@ -61,7 +61,7 @@ class OrderController extends AbstractRestController
     /**
      * @return DynamicModelInterface
      */
-    function getModel(): DynamicModelInterface
+    public function getModel(): DynamicModelInterface
     {
         return new Order();
     }

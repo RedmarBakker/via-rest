@@ -21,23 +21,6 @@ use Route;
 class ViaRest
 {
 
-    private $type;
-
-    private $target;
-
-    private $relations;
-
-    private $customs;
-
-
-    public function __construct($type, $target, array $relations = [], array $customs = [])
-    {
-        $this->type   = $type;
-        $this->target = $target;
-        $this->relations = $relations;
-        $this->customs = $customs;
-    }
-
     public static function handle(string $version, array $config)
     {
         Route::group(['prefix' => $version], function () use ($config) {
@@ -45,7 +28,7 @@ class ViaRest
             foreach ($config as $url => $via) {
                 /** @var $via self */
 
-                if ($via->isModel()) {
+                if ($via instanceof ModelRoute) {
 
                     Route::get($url, function (FetchAllRequest $request) use ($via) {
                         $modelName  = $via->getTarget();
@@ -82,7 +65,7 @@ class ViaRest
                         return $controller->destroy($request, $id);
                     })->where('id', '[0-9]+');
 
-                } elseif ($via->isController()) {
+                } elseif ($via instanceof ControllerRoute) {
 
                     $controllerName = '\\' . $via->getTarget();
 
@@ -96,20 +79,23 @@ class ViaRest
 
                     Route::delete($url . '/{id}', $controllerName . '@destroy')->where('id', '[0-9]+');
 
-                    foreach ($via->getCustoms() as $conf) {
+                    foreach ($via->getCustoms() as $endpoint => $conf) {
+                        list($method, $action) = $conf;
 
-                        switch (strtolower($conf['method'])) {
-                            case 'get':
-                                Route::get($url . '/' . $conf['endpoint'], $controllerName . '@' . $conf['action']);
-                            case 'put':
-                                Route::put($url . '/' . $conf['endpoint'], $controllerName . '@' . $conf['action']);
-                            case 'post':
-                                Route::post($url . '/' . $conf['endpoint'], $controllerName . '@' . $conf['action']);
-                            case 'delete':
-                                Route::delete($url . '/' . $conf['endpoint'], $controllerName . '@' . $conf['action']);
+                        switch (strtoupper($method)) {
+                            case Request::METHOD_GET:
+                                Route::get($url . '/' . $endpoint, $controllerName . '@' . $action);
+                            case Request::METHOD_PUT:
+                                Route::put($url . '/' . $endpoint, $controllerName . '@' . $action);
+                            case Request::METHOD_POST:
+                                Route::post($url . '/' . $endpoint, $controllerName . '@' . $action);
+                            case Request::METHOD_DELETE:
+                                Route::delete($url . '/' . $endpoint, $controllerName . '@' . $action);
                         }
                     }
 
+                } else {
+                    continue;
                 }
 
                 foreach ($via->getRelations() as $route => $relation) {
@@ -135,7 +121,7 @@ class ViaRest
             }
 
             Route::get('{any}', function ($any) {
-                return not_found("Invalid Api Route");
+                return not_found('Invalid Api Route');
             })->where('any', '.*');
 
         });
@@ -146,11 +132,11 @@ class ViaRest
      *
      * @param $model string
      * @param $relations array
-     * @return self
+     * @return ModelRoute
      * */
-    public static function model(string $model, array $relations = []): self
+    public static function model(string $model, array $relations = []): ModelRoute
     {
-        return new self('model', $model, $relations, []);
+        return new ModelRoute($model, $relations);
     }
 
     /**
@@ -159,58 +145,11 @@ class ViaRest
      * @param $controller string
      * @param $relations array
      * @param $customs array
-     * @return self
+     * @return ControllerRoute
      * */
-    public static function controller($controller, $relations = [], $customs = []): self
+    public static function controller($controller, $relations = [], $customs = []): ControllerRoute
     {
-        return new self('controller', $controller, $relations, $customs);
-    }
-
-    /**
-     * Custom endpoint
-     *
-     * @param $method string
-     * @param $endpoint string
-     * @param $action string
-     * @return array
-     * @throws \Exception
-     * */
-    public static function endpoint(string $method, string $endpoint, string $action): array
-    {
-        if (! in_array($method, [Request::METHOD_GET, Request::METHOD_PUT, Request::METHOD_POST, Request::METHOD_DELETE])) {
-            throw new \Exception('Custom endpoint must have a mothod like GET, PUT, POST or DELETE.');
-        }
-
-        return [
-            'method' => $method,
-            'endpoint' => $endpoint,
-            'action' => $action
-        ];
-    }
-
-    public function isModel()
-    {
-        return $this->type == 'model';
-    }
-
-    public function isController()
-    {
-        return $this->type == 'controller';
-    }
-
-    public function getTarget()
-    {
-        return $this->target;
-    }
-
-    public function getRelations()
-    {
-        return $this->relations;
-    }
-
-    public function getCustoms()
-    {
-        return $this->customs;
+        return new ControllerRoute($controller, $relations, $customs);
     }
 
 }

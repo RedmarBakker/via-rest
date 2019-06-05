@@ -2,6 +2,9 @@
 
 namespace ViaRest\Http\Controllers\Api;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Bus\DispatchesJobs;
+use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller;
 use ViaRest\Models\DynamicModelInterface;
 use Illuminate\Http\JsonResponse;

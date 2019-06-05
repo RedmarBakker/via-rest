@@ -169,7 +169,41 @@ class OrdersController extends AbstractRestController
 
 ## Validation your requests
 
-In this example we use previous senario where we gonna create a "UnhandledRequest" referenced above. `app/Http/Requests/Api/Orders/UnhandledRequest.php`:
+Requests will be pickedup automatically. The abstract layer who will simulate the rest structure, will look for the Request with the following namespace: `{ModelPackageName}\Http\Requests\Api\{ModelName}\CreateRequest`, where in this case a create example were given. The following names will be used: `FetchRequest`, `FetchAllRequest`, `CreateRequest`, `UpdateRequest` & `DestroyRequest`.
+
+For example we will create a Request for our Order endpoint we have created. `app/Http/Requests/Api/Orders/CreateRequest.php`:
+```php
+
+namespace App\Http\Requests\Api\Orders;
+
+use ViaRest\Http\Requests\Api\CreateRequest as AbstractCreateRequest;
+use ViaRest\Http\Requests\Api\CrudRequestInterface;
+
+class CreateRequest extends AbstractCreateRequest implements CrudRequestInterface
+{
+
+    public function authorize()
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
+    public function rules()
+    {
+        return [
+            'user_id'    => 'required',
+        ];
+    }
+}
+
+
+```
+
+For custom routes, we can create Requests like this. In this example we use the previous senario where we gonna create a "UnhandledRequest". `app/Http/Requests/Api/Orders/UnhandledRequest.php`:
 
 ```php
 

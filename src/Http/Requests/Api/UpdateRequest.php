@@ -13,7 +13,7 @@ class UpdateRequest extends FormRequest implements CrudRequestInterface
      */
     public function authorize()
     {
-        return auth()->check();
+        return true;
     }
 
     public function failedAuthorization()

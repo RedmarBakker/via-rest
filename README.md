@@ -174,7 +174,7 @@ class OrderController extends AbstractRestController
     public function unhandled(UnhandledRequest $request)
     {
         return ok([
-            'data' => $this->getModel()->where('handled', false)->get()
+            'data' => $this->getModel()->where('is_handled', false)->get()
         ]);
     }
 

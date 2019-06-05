@@ -1,5 +1,26 @@
 A Laravel REST Provider. Plug-and-play module for creating REST API routes with models.
 
+## Installation
+
+`composer.json`:
+```json
+
+{
+    "require": {
+        ...
+        "redmarbakker/via-rest": "^0.0"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/redmarbakker/via-rest"
+        }
+    ]
+}
+
+
+```
+
 ## Setting up a Model
 
 `app/Models/Order.php`:

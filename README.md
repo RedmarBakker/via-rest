@@ -126,7 +126,7 @@ ViaRest::handle('v1', [
      * url => model
      * */
 
-    // /api/v1/orders/unhandled
+    // GET: /api/v1/orders/unhandled
     'orders'     => ViaRest::controller(OrderController::class, [], [
         ViaRest::endpoint(Request::METHOD_GET, 'unhandled', 'unhandled')
     ]),
@@ -195,7 +195,6 @@ class UnhandledRequest extends AbstractRequest implements CrudRequestInterface
         ];
     }
 }
-
 
 
 ```

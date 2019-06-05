@@ -173,7 +173,9 @@ class OrderController extends AbstractRestController
     
     public function unhandled(UnhandledRequest $request)
     {
-        ...
+        return ok([
+            'data' => $this->getModel()->where('handled', false)->get()
+        ]);
     }
 
 }
@@ -209,7 +211,7 @@ class CreateRequest extends AbstractCreateRequest implements CrudRequestInterfac
     public function rules()
     {
         return [
-            'user_id'    => 'required',
+            'user_id' => 'required',
         ];
     }
 }

@@ -2,98 +2,95 @@
 
 namespace ViaRest\Models;
 
-use ViaRest\Http\Requests\Api\CreateRequest;
+use App\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Requests\Api\CrudRequestInterface;
-use ViaRest\Http\Requests\Api\DestroyRequest;
-use ViaRest\Http\Requests\Api\FetchAllRequest;
-use ViaRest\Http\Requests\Api\FetchRequest;
-use ViaRest\Http\Requests\Api\UpdateRequest;
+use ViaRest\Http\Requests\Api\DefaultRequest;
 use Illuminate\Support\Str;
 
 trait DynamicModelTrait
 {
 
-    private $base = '\Http\Requests\Api\\';
+    private $base = '%s\Http\Requests\Api\%s\%s';
 
 
+    /**
+     * @return CrudRequestInterface
+     * @throws ConfigurationException
+     * */
     public function instanceCreateRequest(): CrudRequestInterface
     {
-        $refl = new \ReflectionClass($this);
-        $module = explode('\\', $refl->getNamespaceName())[0];
-        $modelName = $refl->getShortName();
-        $endpoint = '\CreateRequest';
-
-        $className = $module . $this->base . Str::plural($modelName) . $endpoint;
-
-        if (! class_exists($className)) {
-            return new CreateRequest();
-        }
-
-        return new $className();
+        return $this->instanceRequest('CreateRequest');
     }
 
+    /**
+     * @return CrudRequestInterface
+     * @throws ConfigurationException
+     * */
     public function instanceUpdateRequest(): CrudRequestInterface
     {
-        $refl = new \ReflectionClass($this);
-        $module = explode('\\', $refl->getNamespaceName())[0];
-        $modelName = $refl->getShortName();
-        $endpoint = '\UpdateRequest';
-
-        $className = $module . $this->base . Str::plural($modelName) . $endpoint;
-
-        if (! class_exists($className)) {
-            return new UpdateRequest();
-        }
-
-        return new $className();
+        return $this->instanceRequest('UpdateRequest');
     }
 
+    /**
+     * @return CrudRequestInterface
+     * @throws ConfigurationException
+     * */
     public function instanceFetchRequest(): CrudRequestInterface
     {
-        $refl = new \ReflectionClass($this);
-        $module = explode('\\', $refl->getNamespaceName())[0];$module = explode('\\', $refl->getNamespaceName())[0];
-        $modelName = $refl->getShortName();
-        $endpoint = '\FetchRequest';
-
-        $className = $module . $this->base . Str::plural($modelName) . $endpoint;
-
-        if (! class_exists($className)) {
-            return new FetchRequest();
-        }
-
-        return new $className();
+        return $this->instanceRequest('FetchRequest');
     }
 
+    /**
+     * @return CrudRequestInterface
+     * @throws ConfigurationException
+     * */
     public function instanceFetchAllRequest(): CrudRequestInterface
     {
-        $refl = new \ReflectionClass($this);
-        $module = explode('\\', $refl->getNamespaceName())[0];
-        $modelName = $refl->getShortName();
-        $endpoint = '\FetchAllRequest';
-
-        $className = $module . $this->base . Str::plural($modelName) . $endpoint;
-
-        if (! class_exists($className)) {
-            return new FetchAllRequest();
-        }
-
-        return new $className();
+        return $this->instanceRequest('FetchAllRequest');
     }
 
+    /**
+     * @return CrudRequestInterface
+     * @throws ConfigurationException
+     * */
     public function instanceDestroyRequest(): CrudRequestInterface
     {
-        $refl = new \ReflectionClass($this);
-        $module = explode('\\', $refl->getNamespaceName())[0];
-        $modelName = $refl->getShortName();
-        $endpoint = '\DestroyRequest';
+        return $this->instanceRequest('DestroyRequest');
+    }
 
-        $className = $module . $this->base . Str::plural($modelName) . $endpoint;
+    /**
+     * @param $endpoint string
+     * @return CrudRequestInterface
+     * @throws ConfigurationException
+     * */
+    private function instanceRequest(string $endpoint): CrudRequestInterface
+    {
+        try {
+            $refl = new \ReflectionClass($this);
+            $module = explode('\\', $refl->getNamespaceName())[0];
+            $modelName = $refl->getShortName();
 
-        if (! class_exists($className)) {
-            return new DestroyRequest();
+            $className = printf($this->base, $module, Str::plural($modelName), $endpoint);
+
+            if (!class_exists($className)) {
+                return new DefaultRequest();
+            }
+        } catch (\ReflectionException $e) {
+            throw new ConfigurationException(printf(
+                'Something went wrong while trying to predict the namespace of a model.'
+            ));
         }
 
-        return new $className();
+        $model = new $className();
+
+        if (! $model instanceof CrudRequestInterface) {
+            throw new ConfigurationException(printf(
+                'Configured ViaRest model needs to be an instance of %s',
+                CrudRequestInterface::class
+            ));
+        }
+
+        return $model;
     }
 
 }

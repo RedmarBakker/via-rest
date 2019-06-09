@@ -163,7 +163,7 @@ ViaRest::handle('v1', [
 
     // GET: /api/v1/orders/unhandled
     'orders' => ViaRest::controller(OrderController::class, [], [
-        ViaRest::endpoint(Request::METHOD_GET, 'unhandled', 'unhandled')
+        'unhandled' => [Request::METHOD_GET, 'unhandled']
     ]),
 ]);
 

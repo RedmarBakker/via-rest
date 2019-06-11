@@ -150,7 +150,7 @@ ViaRest::handle('v1', [
 
 ### Configuring API routes with a custom endpoint
 
-An example where a custom endpoint is added where the second parameter is the endpoint and the last parameter is the action. `routes/api.php`:
+An example where a custom endpoint is added where the frist array value is the method and the second array value is the method. `routes/api.php`:
 
 ```php
 
@@ -206,9 +206,9 @@ class OrderController extends AbstractRestController
 
 ## Validation your requests
 
-Requests will be pickedup automatically. The abstract layer who will simulate the rest structure, will look for the Request with the following namespace: `{ModelPackageName}\Http\Requests\Api\{ModelName}\CreateRequest`, where in this case a create example were given. The following names will be used: `FetchRequest`, `FetchAllRequest`, `CreateRequest`, `UpdateRequest` & `DestroyRequest`.
+Requests will be pickedup automatically. The abstract layer who will simulate the REST structure, will look for the Request with the following namespace: `{ModelPackageName}\Http\Requests\Api\{ModelName}\CreateRequest`, where in this case a create example were given. The following names will be used: `FetchRequest`, `FetchAllRequest`, `CreateRequest`, `UpdateRequest` & `DestroyRequest`.
 
-For example we will create a Request for our Order endpoint we have created. `app/Http/Requests/Api/Orders/CreateRequest.php`:
+For example we will create a Request for our Order endpoint. `app/Http/Requests/Api/Orders/CreateRequest.php`:
 ```php
 
 namespace App\Http\Requests\Api\Orders;
@@ -240,7 +240,7 @@ class CreateRequest extends AbstractCreateRequest implements CrudRequestInterfac
 
 ```
 
-For custom routes, we can create Requests like this. In this example we use the previous senario where we gonna create a "UnhandledRequest". `app/Http/Requests/Api/Orders/UnhandledRequest.php`:
+For custom routes, we can create Requests like the following code. In this example we use the previous senario where we gonna create a "UnhandledRequest". `app/Http/Requests/Api/Orders/UnhandledRequest.php`:
 
 ```php
 

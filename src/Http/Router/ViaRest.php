@@ -8,7 +8,7 @@
 
 namespace ViaRest\Http\Router;
 
-use App\Exceptions\Api\ConfigurationException;
+use ViaRest\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Controllers\Api\DynamicRestController;
 use ViaRest\Http\Controllers\Api\DynamicRestRelationController;
 use Illuminate\Http\Request;

@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Exceptions\Api;
+namespace ViaRest\Exceptions\Api;
 
 use Exception;
-use Throwable;
 
 class ConfigurationException extends Exception
 {

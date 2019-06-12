@@ -10,13 +10,9 @@ namespace ViaRest\Http\Router;
 
 use ViaRest\Http\Controllers\Api\DynamicRestController;
 use ViaRest\Http\Controllers\Api\DynamicRestRelationController;
-use ViaRest\Http\Requests\Api\CreateRequest;
-use ViaRest\Http\Requests\Api\DestroyRequest;
-use ViaRest\Http\Requests\Api\FetchAllRequest;
-use ViaRest\Http\Requests\Api\FetchRequest;
-use ViaRest\Http\Requests\Api\UpdateRequest;
 use Illuminate\Http\Request;
 use Route;
+use ViaRest\Http\Requests\Api\DefaultRequest;
 
 class ViaRest
 {
@@ -30,35 +26,35 @@ class ViaRest
 
                 if ($via instanceof ModelRoute) {
 
-                    Route::get($url, function (FetchAllRequest $request) use ($via) {
+                    Route::get($url, function (DefaultRequest $request) use ($via) {
                         $modelName  = $via->getTarget();
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->fetchAll($request);
                     });
 
-                    Route::get($url . '/{id}', function (FetchRequest $request, $id) use ($via) {
+                    Route::get($url . '/{id}', function (DefaultRequest $request, $id) use ($via) {
                         $modelName  = $via->getTarget();
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->fetch($request, $id);
                     })->where('id', '[0-9]+');
 
-                    Route::post($url, function (CreateRequest $request) use ($via) {
+                    Route::post($url, function (DefaultRequest $request) use ($via) {
                         $modelName  = $via->getTarget();
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->create($request);
                     });
 
-                    Route::put($url . '/{id}', function (UpdateRequest $request, $id) use ($via) {
+                    Route::put($url . '/{id}', function (DefaultRequest $request, $id) use ($via) {
                         $modelName  = $via->getTarget();
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->update($request, $id);
                     })->where('id', '[0-9]+');
 
-                    Route::delete($url . '/{id}', function (DestroyRequest $request, $id) use ($via) {
+                    Route::delete($url . '/{id}', function (DefaultRequest $request, $id) use ($via) {
                         $modelName  = $via->getTarget();
                         $controller = new DynamicRestController(new $modelName());
 
@@ -100,7 +96,7 @@ class ViaRest
 
                 foreach ($via->getRelations() as $route => $relation) {
 
-                    Route::get($url . '/{join_id}/' . $route, function (FetchAllRequest $request, $joinId) use ($via, $relation) {
+                    Route::get($url . '/{join_id}/' . $route, function (DefaultRequest $request, $joinId) use ($via, $relation) {
                         $refl = new \ReflectionClass($via->getTarget());
                         $identifier = str_replace('controller', '', strtolower($refl->getShortName()));
                         $controller = new DynamicRestRelationController(new $relation(), $identifier . '_id', $joinId);
@@ -108,7 +104,7 @@ class ViaRest
                         return $controller->fetchAll($request);
                     })->where('join_id', '[0-9]+');
 
-                    Route::post($url . '/{join_id}/' . $route, function (CreateRequest $request, $joinId) use ($via, $relation) {
+                    Route::post($url . '/{join_id}/' . $route, function (DefaultRequest $request, $joinId) use ($via, $relation) {
                         $refl = new \ReflectionClass($via->getTarget());
                         $identifier = str_replace('controller', '', strtolower($refl->getShortName()));
                         $controller = new DynamicRestRelationController(new $relation(), $identifier . '_id', $joinId);

@@ -70,7 +70,7 @@ trait DynamicModelTrait
             $module = explode('\\', $refl->getNamespaceName())[0];
             $modelName = $refl->getShortName();
 
-            $className = printf($this->base, $module, Str::plural($modelName), $endpoint);
+            $className = sprintf($this->base, $module, Str::plural($modelName), $endpoint);
 
             if (!class_exists($className)) {
                 return new DefaultRequest();

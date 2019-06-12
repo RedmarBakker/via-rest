@@ -13,7 +13,7 @@ use ViaRest\Http\Controllers\Api\DynamicRestController;
 use ViaRest\Http\Controllers\Api\DynamicRestRelationController;
 use Illuminate\Http\Request;
 use Route;
-use ViaRest\Http\Requests\Api\CrudRequestInterface;
+use ViaRest\Http\Controllers\Api\RestControllerInterface;
 use ViaRest\Http\Requests\Api\DefaultRequest;
 use ViaRest\Models\DynamicModelInterface;
 
@@ -193,12 +193,12 @@ class ViaRest
             ));
         }
 
-        if (! $ref->implementsInterface(CrudRequestInterface::class)) {
+        if (! $ref->implementsInterface(RestControllerInterface::class)) {
             throw new ConfigurationException(sprintf(
                 'Controller %s needs to implement %s to work correctly. See the docs: ' .
                 'https://github.com/RedmarBakker/via-rest#setting-up-a-controller',
                 $controller,
-                CrudRequestInterface::class
+                RestControllerInterface::class
             ));
         }
 

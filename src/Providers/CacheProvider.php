@@ -32,9 +32,9 @@ class CacheProvider
      * Set Cache
      *
      * @param $key string
-     * @param $value array
+     * @param $value mixed
      * */
-    public function set(string $key, array $value)
+    public function set(string $key, $value)
     {
         $value = var_export($value, true);
 
@@ -51,9 +51,9 @@ class CacheProvider
      * Get
      *
      * @param $key string
-     * @return array
+     * @return mixed|bool
      * */
-    public function get(string $key): array
+    public function get(string $key)
     {
         @include "/tmp/$this->namespace.$key";
         return isset($value) ? $value : false;

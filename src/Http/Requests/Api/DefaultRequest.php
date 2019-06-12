@@ -14,9 +14,16 @@ class DefaultRequest extends FormRequest implements CrudRequestInterface
      */
     public function authorize()
     {
-        return true;
+        if (config('APP_DEBUG') == true) {
+            return true;
+        }
+
+        return auth()->check();
     }
 
+    /**
+     * Pass the failed authorization, we handle this in the AbstractRestController it self.
+     * */
     public function failedAuthorization()
     {
         return;

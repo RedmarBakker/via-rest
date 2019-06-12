@@ -8,11 +8,14 @@
 
 namespace ViaRest\Http\Router;
 
+use App\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Controllers\Api\DynamicRestController;
 use ViaRest\Http\Controllers\Api\DynamicRestRelationController;
 use Illuminate\Http\Request;
 use Route;
+use ViaRest\Http\Requests\Api\CrudRequestInterface;
 use ViaRest\Http\Requests\Api\DefaultRequest;
+use ViaRest\Models\DynamicModelInterface;
 
 class ViaRest
 {
@@ -129,9 +132,36 @@ class ViaRest
      * @param $model string
      * @param $relations array
      * @return ModelRoute
+     * @throws ConfigurationException
      * */
     public static function model(string $model, array $relations = []): ModelRoute
     {
+        if (! class_exists($model)) {
+            throw new ConfigurationException(sprintf(
+                'Model class "%s" could not be found and initialized. Please configure the full ' .
+                'model name. See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
+                $model
+            ));
+        }
+
+        try {
+            $ref = new \ReflectionClass($model);
+        } catch (\ReflectionException $e) {
+            throw new ConfigurationException(sprintf(
+                'Reflection: %s',
+                $e->getMessage()
+            ));
+        }
+
+        if (! $ref->implementsInterface(DynamicModelInterface::class)) {
+            throw new ConfigurationException(sprintf(
+                'Model %s needs to implement %s to work correctly. See the docs: ' .
+                'https://github.com/RedmarBakker/via-rest#setting-up-a-model',
+                $model,
+                DynamicModelInterface::class
+            ));
+        }
+
         return new ModelRoute($model, $relations);
     }
 
@@ -142,9 +172,36 @@ class ViaRest
      * @param $relations array
      * @param $customs array
      * @return ControllerRoute
+     * @throws ConfigurationException
      * */
     public static function controller($controller, $relations = [], $customs = []): ControllerRoute
     {
+        if (! class_exists($controller)) {
+            throw new ConfigurationException(sprintf(
+                'Controller class "%s" could not be found and initialized. Please configure the full ' .
+                'controller name. See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
+                $controller
+            ));
+        }
+
+        try {
+            $ref = new \ReflectionClass($controller);
+        } catch (\ReflectionException $e) {
+            throw new ConfigurationException(sprintf(
+                'Reflection: %s',
+                $e->getMessage()
+            ));
+        }
+
+        if (! $ref->implementsInterface(CrudRequestInterface::class)) {
+            throw new ConfigurationException(sprintf(
+                'Controller %s needs to implement %s to work correctly. See the docs: ' .
+                'https://github.com/RedmarBakker/via-rest#setting-up-a-controller',
+                $controller,
+                CrudRequestInterface::class
+            ));
+        }
+
         return new ControllerRoute($controller, $relations, $customs);
     }
 

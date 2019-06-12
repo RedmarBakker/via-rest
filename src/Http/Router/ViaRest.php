@@ -16,6 +16,7 @@ use Route;
 use ViaRest\Http\Controllers\Api\RestControllerInterface;
 use ViaRest\Http\Requests\Api\DefaultRequest;
 use ViaRest\Models\DynamicModelInterface;
+use Illuminate\Support\Str;
 
 class ViaRest
 {
@@ -102,7 +103,7 @@ class ViaRest
                     Route::get($url . '/{join_id}/' . $route, function (DefaultRequest $request, $joinId) use ($via, $relation) {
                         $refl = new \ReflectionClass($via->getTarget());
                         $identifier = str_replace('controller', '', strtolower($refl->getShortName()));
-                        $controller = new DynamicRestRelationController(new $relation(), $identifier . '_id', $joinId);
+                        $controller = new DynamicRestRelationController(new $relation(), Str::singular($identifier) . '_id', $joinId);
 
                         return $controller->fetchAll($request);
                     })->where('join_id', '[0-9]+');
@@ -110,7 +111,7 @@ class ViaRest
                     Route::post($url . '/{join_id}/' . $route, function (DefaultRequest $request, $joinId) use ($via, $relation) {
                         $refl = new \ReflectionClass($via->getTarget());
                         $identifier = str_replace('controller', '', strtolower($refl->getShortName()));
-                        $controller = new DynamicRestRelationController(new $relation(), $identifier . '_id', $joinId);
+                        $controller = new DynamicRestRelationController(new $relation(), Str::singular($identifier) . '_id', $joinId);
 
                         return $controller->create($request);
                     })->where('join_id', '[0-9]+');

@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use ViaRest\Providers\CacheProvider;
+use Illuminate\Support\Facades\Input;
 
 abstract class AbstractRestController extends Controller
 {
@@ -219,9 +220,7 @@ abstract class AbstractRestController extends Controller
      */
     public function doFetchAll(array $input): JsonResponse
     {
-        return ok([
-            'data' => call_user_func([$this->getModel(), 'all'])
-        ]);
+        return ok(call_user_func([$this->getModel(), 'paginate']));
     }
 
     /**

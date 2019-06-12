@@ -74,7 +74,7 @@ class DynamicRestRelationController extends Controller
         try {
 
             return ok([
-                'data' => call_user_func([$this->getModel(), 'create'], $input)
+                'data' => call_user_func([$this->getModel(), 'create'], $input)->refresh()
             ]);
 
         } catch (\Exception $e) {

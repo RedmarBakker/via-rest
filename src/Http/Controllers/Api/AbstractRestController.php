@@ -85,28 +85,7 @@ abstract class AbstractRestController extends Controller
         }
 
         try {
-            $cacheKey = sprintf(
-                '%s.%s.%s',
-                get_class($this->getModel()),
-                __FUNCTION__,
-                $id
-            );
-
-            $output = $this->cacheProvider->get($cacheKey);
-
-            if ($output != false) {
-                $res = new JsonResponse();
-                $res->setStatusCode(200);
-                $res->setContent($output);
-
-                return $res;
-            }
-
-            $output = static::doFetch($id, $input);
-
-            $this->cacheProvider->set($cacheKey, $output->content());
-
-            return $output;
+            return static::doFetch($id, $input);
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);
         }

@@ -220,7 +220,7 @@ abstract class AbstractRestController extends Controller
      */
     public function doFetchAll(array $input): JsonResponse
     {
-        return ok(call_user_func([$this->getModel(), 'paginate']));
+        return ok(call_user_func_array([$this->getModel(), 'paginate'], [Input::get('limit', 15)]));
     }
 
     /**

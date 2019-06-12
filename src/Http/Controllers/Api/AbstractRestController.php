@@ -12,11 +12,26 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use ViaRest\Providers\CacheProvider;
 
 abstract class AbstractRestController extends Controller
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
     use RestResponseControllerTrait;
+
+    /**
+     * @var CacheProvider
+     * */
+    private $cacheProvider;
+
+
+    /**
+     * Constructor
+     * */
+    public function __construct()
+    {
+        $this->cacheProvider = new CacheProvider(__CLASS__);
+    }
 
     /**
      * Fetch All
@@ -70,7 +85,28 @@ abstract class AbstractRestController extends Controller
         }
 
         try {
-            return static::doFetch($id, $input);
+            $cacheKey = sprintf(
+                '%s.%s.%s',
+                get_class($this->getModel()),
+                __FUNCTION__,
+                $id
+            );
+
+            $output = $this->cacheProvider->get($cacheKey);
+
+            if ($output != false) {
+                $res = new JsonResponse();
+                $res->setStatusCode(200);
+                $res->setContent($output);
+
+                return $res;
+            }
+
+            $output = static::doFetch($id, $input);
+
+            $this->cacheProvider->set($cacheKey, $output->content());
+
+            return $output;
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);
         }

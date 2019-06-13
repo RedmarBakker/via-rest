@@ -10,7 +10,7 @@ use ViaRest\Models\DynamicModelInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-
+use Illuminate\Support\Facades\Input;
 
 class DynamicRestRelationController extends Controller
 {
@@ -118,7 +118,7 @@ class DynamicRestRelationController extends Controller
         try {
 
             return ok([
-                'data' => call_user_func_array([$this->getModel(), 'where'], [$this->identifier, '=', $this->joinId])->get()
+                'data' => call_user_func_array([$this->getModel(), 'where'], [$this->identifier, '=', $this->joinId])->paginate(Input::get('limit', 15))
             ]);
 
         } catch (\Exception $e) {

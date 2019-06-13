@@ -117,9 +117,7 @@ class DynamicRestRelationController extends Controller
 
         try {
 
-            return ok([
-                'data' => call_user_func_array([$this->getModel(), 'where'], [$this->identifier, '=', $this->joinId])->paginate(Input::get('limit', 15))
-            ]);
+            return ok(call_user_func_array([$this->getModel(), 'where'], [$this->identifier, '=', $this->joinId])->paginate(Input::get('limit', 15)));
 
         } catch (\Exception $e) {
             return error_json_response('Something went wrong. Relation not fully configured.', [], 500);

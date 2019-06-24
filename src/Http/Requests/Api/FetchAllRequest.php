@@ -38,8 +38,9 @@ class FetchAllRequest extends FormRequest implements CrudRequestInterface
     {
         return [
             'order_identifier' => 'max:255',
-            'order_direction' => 'max:4',
+            'order_direction' => 'in:desc,asc,random',
             'limit' => 'integer',
+            'relations' => 'array'
         ];
     }
 

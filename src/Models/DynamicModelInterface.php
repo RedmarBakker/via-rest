@@ -3,6 +3,7 @@
 namespace ViaRest\Models;
 
 use ViaRest\Http\Requests\Api\CrudRequestInterface;
+use ViaRest\Http\Requests\Api\FetchAllRequest;
 
 interface DynamicModelInterface
 {
@@ -13,7 +14,7 @@ interface DynamicModelInterface
 
     public function instanceFetchRequest(): CrudRequestInterface;
 
-    public function instanceFetchAllRequest(): CrudRequestInterface;
+    public function instanceFetchAllRequest(): FetchAllRequest;
 
     public function instanceDestroyRequest(): CrudRequestInterface;
 

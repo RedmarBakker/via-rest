@@ -40,6 +40,7 @@ class FetchRequest extends FormRequest implements CrudRequestInterface
             'order_identifier' => 'max:255',
             'order_direction'  => 'max:4',
             'limit'            => 'integer',
+            'relations'        => 'array'
         ];
     }
 

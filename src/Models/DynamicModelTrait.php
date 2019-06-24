@@ -6,6 +6,7 @@ use App\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Requests\Api\CrudRequestInterface;
 use ViaRest\Http\Requests\Api\DefaultRequest;
 use Illuminate\Support\Str;
+use ViaRest\Http\Requests\Api\FetchAllRequest;
 
 trait DynamicModelTrait
 {
@@ -44,7 +45,7 @@ trait DynamicModelTrait
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    public function instanceFetchAllRequest(): CrudRequestInterface
+    public function instanceFetchAllRequest(): FetchAllRequest
     {
         return $this->instanceRequest('FetchAllRequest');
     }

@@ -20,6 +20,23 @@ abstract class AbstractRestController extends Controller
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
     use RestResponseControllerTrait;
 
+
+    /**
+     * @var string
+     * */
+    const ORDER_IDENTIFIER = 'id';
+
+    /**
+     * @var string
+     * */
+    const ORDER_DIRECTION = 'DESC';
+
+    /**
+     * @var string
+     * */
+    const LIMIT = 15;
+
+
     /**
      * @var CacheProvider
      * */
@@ -189,7 +206,7 @@ abstract class AbstractRestController extends Controller
     public function doCreate(array $input): JsonResponse
     {
         return ok([
-            'data' => call_user_func([$this->getModel(), 'create'], $input)
+            'data' => call_user_func([$this->getModel(), 'create'], $input)->refresh()
         ]);
     }
 
@@ -220,7 +237,14 @@ abstract class AbstractRestController extends Controller
      */
     public function doFetchAll(array $input): JsonResponse
     {
-        return ok(call_user_func_array([$this->getModel(), 'paginate'], [Input::get('limit', 15)]));
+        return ok(
+            call_user_func_array([$this->getModel(), 'orderBy'], [
+                $input['order_identifier'] ?? self::ORDER_IDENTIFIER,
+                $input['order_type'] ?? self::ORDER_DIRECTION
+            ])
+                ->load($input['relations'] ?? [])
+                ->paginate($input['limit'] ?? self::LIMIT)
+        );
     }
 
     /**
@@ -269,10 +293,5 @@ abstract class AbstractRestController extends Controller
             'data' => []
         ]);
     }
-
-    /**
-     * @return DynamicModelInterface
-     */
-    abstract function getModel(): DynamicModelInterface;
 
 }

@@ -24,6 +24,16 @@ trait RestResponseControllerTrait
     }
 
     /**
+     * Not Allowed
+     *
+     * @return JsonResponse
+     * */
+    public function notAllowed(): JsonResponse
+    {
+        return method_not_allowed('Method Not Allowed');
+    }
+
+    /**
      * Invalid input
      *
      * @param $errors

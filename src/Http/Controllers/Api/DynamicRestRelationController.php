@@ -12,10 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Input;
 
-class DynamicRestRelationController extends Controller
+class DynamicRestRelationController extends AbstractRestController implements RestControllerInterface
 {
-    use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
-    use RestResponseControllerTrait;
 
     /**
      * @var DynamicModelInterface
@@ -61,22 +59,18 @@ class DynamicRestRelationController extends Controller
             return $this->forbidden();
         }
 
-        $input = array_merge($request->all(), [$this->identifier => $this->joinId]);
-
-        $validator = Validator::make($input, $createRequest->rules());
+        $validator = Validator::make($request->all(), $createRequest->rules());
 
         try {
-            $validator->validate();
-            $input = $request->all();
+            $input = $validator->validate();
+            $input = array_merge($input, [$this->identifier => $this->joinId]);
         } catch (\Exception $e) {
             return $this->invalidInput($validator->errors());
         }
 
         try {
 
-            return ok([
-                'data' => call_user_func([$this->getModel(), 'create'], $input)->refresh()
-            ]);
+            self::doCreate($input);
 
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);
@@ -91,7 +85,7 @@ class DynamicRestRelationController extends Controller
      */
     public function fetch(Request $request): JsonResponse
     {
-        return method_not_allowed('Method Not Allowed');
+        return $this->notAllowed();
     }
 
     /**
@@ -111,15 +105,22 @@ class DynamicRestRelationController extends Controller
         $validator = Validator::make($request->all(), $fetchAllRequest->rules());
 
         try {
-            $validator->validate();
-            $input = $request->all();
+            $input = $validator->validate();
         } catch (\Exception $e) {
             return $this->invalidInput($validator->errors());
         }
 
         try {
 
-            return ok(call_user_func_array([$this->getModel(), 'where'], [$this->identifier, '=', $this->joinId])->paginate(Input::get('limit', 15)));
+            return ok(
+                call_user_func_array(
+                    [$this->getModel(), 'where'],
+                    [$this->identifier, '=', $this->joinId]
+                )
+                    ->orderBy($input['order_identifier'] ?? self::ORDER_IDENTIFIER, $input['order_type'] ?? self::ORDER_DIRECTION)
+                    ->load($input['relations'] ?? [])
+                    ->paginate($input['limit'] ?? self::LIMIT)
+            );
 
         } catch (\Exception $e) {
             return error_json_response('Something went wrong. Relation not fully configured.', [], 500);
@@ -134,7 +135,7 @@ class DynamicRestRelationController extends Controller
      */
     public function update(Request $request): JsonResponse
     {
-        return method_not_allowed('Method Not Allowed');
+        return $this->notAllowed();
     }
 
     /**
@@ -145,7 +146,7 @@ class DynamicRestRelationController extends Controller
      */
     public function destroy(Request $request): JsonResponse
     {
-        return method_not_allowed('Method Not Allowed');
+        return $this->notAllowed();
     }
 
     /**

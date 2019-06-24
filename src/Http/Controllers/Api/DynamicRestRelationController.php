@@ -66,7 +66,8 @@ class DynamicRestRelationController extends Controller
         $validator = Validator::make($input, $createRequest->rules());
 
         try {
-            $input = $validator->validate();
+            $validator->validate();
+            $input = $request->all();
         } catch (\Exception $e) {
             return $this->invalidInput($validator->errors());
         }
@@ -110,7 +111,8 @@ class DynamicRestRelationController extends Controller
         $validator = Validator::make($request->all(), $fetchAllRequest->rules());
 
         try {
-            $input = $validator->validate();
+            $validator->validate();
+            $input = $request->all();
         } catch (\Exception $e) {
             return $this->invalidInput($validator->errors());
         }

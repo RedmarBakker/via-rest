@@ -113,12 +113,19 @@ class DynamicRestRelationController extends AbstractRestController implements Re
 
         try {
 
+            $result = call_user_func_array(
+                [$this->getModel(), 'where'],
+                [$this->identifier, '=', $this->joinId]
+            );
+
+            if ($input['order_identifier'] == 'random') {
+                $result->inRandomOrder();
+            } else {
+                $result->orderBy($input['order_identifier'] ?? self::ORDER_IDENTIFIER, $input['order_type'] ?? self::ORDER_DIRECTION);
+            }
+
             return ok(
-                call_user_func_array(
-                    [$this->getModel(), 'where'],
-                    [$this->identifier, '=', $this->joinId]
-                )
-                    ->orderBy($input['order_identifier'] ?? self::ORDER_IDENTIFIER, $input['order_type'] ?? self::ORDER_DIRECTION)
+                $result
                     ->load($input['relations'] ?? [])
                     ->paginate($input['limit'] ?? self::LIMIT)
             );

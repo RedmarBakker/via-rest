@@ -47,7 +47,9 @@ trait DynamicModelTrait
      * */
     public function instanceFetchAllRequest(): FetchAllRequest
     {
-        return $this->instanceRequest('FetchAllRequest');
+        $request = $this->instanceRequest('FetchAllRequest');
+
+        return $request instanceof FetchAllRequest ? $request : new FetchAllRequest();
     }
 
     /**

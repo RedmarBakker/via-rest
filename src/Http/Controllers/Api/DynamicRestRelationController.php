@@ -80,10 +80,11 @@ class DynamicRestRelationController extends AbstractRestController implements Re
     /**
      * Fetch a model
      *
+     * @param $id int
      * @param $request Request
      * @return JsonResponse
      */
-    public function fetch(Request $request): JsonResponse
+    public function fetch(Request $request, $id): JsonResponse
     {
         return $this->notAllowed();
     }
@@ -130,10 +131,11 @@ class DynamicRestRelationController extends AbstractRestController implements Re
     /**
      * Update a model
      *
+     * @param $id int
      * @param $request Request
      * @return JsonResponse
      */
-    public function update(Request $request): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
         return $this->notAllowed();
     }
@@ -141,10 +143,11 @@ class DynamicRestRelationController extends AbstractRestController implements Re
     /**
      * Destroy a model
      *
+     * @param $id int
      * @param $request Request
      * @return JsonResponse
      */
-    public function destroy(Request $request): JsonResponse
+    public function destroy(Request $request, $id): JsonResponse
     {
         return $this->notAllowed();
     }

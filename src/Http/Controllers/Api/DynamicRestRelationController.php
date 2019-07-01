@@ -131,7 +131,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
             );
 
         } catch (\Exception $e) {
-            return error_json_response('Something went wrong. Relation not fully configured.', [], 500);
+            return error_json_response('Something went wrong. Relation not fully configured.', [$e->getMessage()], 500);
         }
     }
 

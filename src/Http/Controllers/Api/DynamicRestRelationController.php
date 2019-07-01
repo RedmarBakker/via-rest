@@ -121,7 +121,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
             if ($orderIdentifier  == 'random') {
                 $result->inRandomOrder();
             } else {
-                $result->orderBy($orderIdentifier, $input['order_type'] ?? self::ORDER_DIRECTION);
+                $result->orderBy($orderIdentifier, $input['order_direction'] ?? self::ORDER_DIRECTION);
             }
 
             return ok(

@@ -37,10 +37,7 @@ class FetchRequest extends FormRequest implements CrudRequestInterface
     public function rules()
     {
         return [
-            'order_identifier' => 'max:255',
-            'order_direction'  => 'max:4',
-            'limit'            => 'integer',
-            'relations'        => 'array'
+            'relations' => 'array'
         ];
     }
 

@@ -29,7 +29,7 @@ abstract class AbstractRestController extends Controller
     /**
      * @var string
      * */
-    const ORDER_DIRECTION = 'DESC';
+    const ORDER_DIRECTION = 'ASC';
 
     /**
      * @var string
@@ -238,11 +238,11 @@ abstract class AbstractRestController extends Controller
     public function doFetchAll(array $input): JsonResponse
     {
         return ok(
-            call_user_func_array([$this->getModel(), 'orderBy'], [
-                $input['order_identifier'] ?? self::ORDER_IDENTIFIER,
-                $input['order_type'] ?? self::ORDER_DIRECTION
-            ])
+            $this->getModel()
                 ->load($input['relations'] ?? [])
+                ->orderBy(
+                    $input['order_identifier'] ?? self::ORDER_IDENTIFIER,
+                    $input['order_type'] ?? self::ORDER_DIRECTION)
                 ->paginate($input['limit'] ?? self::LIMIT)
         );
     }

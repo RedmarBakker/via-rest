@@ -71,7 +71,30 @@ class DynamicRestRelationController extends AbstractRestController implements Re
 
         try {
 
-            self::doCreate($input);
+            $modelName = ucfirst(explode('_', $this->identifier)[0]);
+            $modelNS = '\App\Model\\' . $modelName;
+
+            $relf = new \ReflectionClass($this->getModel());
+            $relationName = $relf->getShortName();
+
+            $relation = Str::plural(strtolower($relationName));
+
+            $join = call_user_func([$modelNS, 'find'], $this->joinId);
+
+            if (method_exists($join, $relation)) {
+                unset($input[$this->identifier]);
+
+                $class = get_class($this->getModel());
+
+                $obj = new $class($input);
+                $join->$relation()->save($obj);
+
+                return ok([
+                    'data' => $obj
+                ]);
+            } else {
+                return self::doCreate($input);
+            }
 
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);

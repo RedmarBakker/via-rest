@@ -218,7 +218,7 @@ abstract class AbstractRestController extends Controller
      */
     public function doFetch($id, array $input): JsonResponse
     {
-        $item = call_user_func([$this->getModel(), 'find'], $id);
+        $item = $this->getModel()->with($input['relations'] ?? [])->find($id);
 
         if ($item == null) {
             return $this->notFound();

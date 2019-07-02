@@ -149,11 +149,11 @@ class DynamicRestRelationController extends AbstractRestController implements Re
 
             if (method_exists($join, $relation)) {
                 $result = $join->$relation();
-                $result->get()->with($input['relations'] ?? []);
+                $result->get()->load($input['relations'] ?? []);
             } else {
                 $result = $this->getModel();
                 $result->where($this->identifier, '=', $this->joinId);
-                $result->with($input['relations'] ?? []);
+                $result->load($input['relations'] ?? []);
             }
 
             $orderDirection = $input['order_direction'] ?? self::ORDER_DIRECTION;

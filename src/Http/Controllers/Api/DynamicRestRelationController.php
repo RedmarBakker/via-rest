@@ -11,7 +11,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Input;
-pu
+use Illuminate\Support\Str;
+
 class DynamicRestRelationController extends AbstractRestController implements RestControllerInterface
 {
 

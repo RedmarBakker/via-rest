@@ -238,7 +238,7 @@ abstract class AbstractRestController extends Controller
     public function doFetchAll(array $input): JsonResponse
     {
         $result = $this->getModel();
-        $result->load($input['relations'] ?? []);
+        $result->with($input['relations'] ?? []);
 
         $orderDirection = $input['order_direction'] ?? self::ORDER_DIRECTION;
         if ($orderDirection == 'random') {

@@ -50,11 +50,13 @@ In this case we modify our create because we want to do something specific on a 
 
 namespace App\Http\Controllers\Api;
 
+use Illuminate\Http\JsonResponse;
 use ViaRest\Http\Controllers\Api\AbstractRestController;
+use ViaRest\Http\Controllers\Api\RestControllerInterface;
 use ViaRest\Models\DynamicModelInterface;
 use App\Models\Order;
 
-class OrderController extends AbstractRestController
+class OrderController extends AbstractRestController implements RestControllerInterface
 {
 
 
@@ -91,6 +93,8 @@ A basic model example. `routes/api.php:`:
 
 ```php
 
+use ViaRest\Http\Router\ViaRest;
+
 ViaRest::handle('v1', [
     /**
      * All REST API routes
@@ -107,6 +111,8 @@ ViaRest::handle('v1', [
 A basic controller example. `routes/api.php`:
 
 ```php
+
+use ViaRest\Http\Router\ViaRest;
 
 ViaRest::handle('v1', [
     /**
@@ -126,6 +132,12 @@ ViaRest::handle('v1', [
 An example where there is an OneToMany relationship with orders. In this case an user can have multiple orders. Requesting this relation can be done with the following endpoint: /api/v1/users/1/orders. In this way orders can be fetched and an order can be created (GET, POST). `routes/api.php`:
 
 ```php
+
+use ViaRest\Http\Router\ViaRest;
+use App\Http\Controllers\Api\OrderController;
+use App\Models\User;
+use App\Models\Order;
+use App\Models\Product;
 
 ViaRest::handle('v1', [
     /**
@@ -154,6 +166,10 @@ An example where a custom endpoint is added where the frist array value is the m
 
 ```php
 
+use ViaRest\Http\Router\ViaRest;
+use App\Http\Controllers\Api\OrderController;
+use Illuminate\Http\Request;
+
 ViaRest::handle('v1', [
     /**
      * All REST API routes
@@ -177,12 +193,13 @@ ViaRest::handle('v1', [
 namespace App\Http\Controllers\Api;
 
 use ViaRest\Http\Controllers\Api\AbstractRestController;
+use ViaRest\Http\Controllers\Api\RestControllerInterface;
 use ViaRest\Models\DynamicModelInterface;
+use App\Http\Requests\Api\UnhandledRequest;
 use App\Model\Order;
 
-class OrderController extends AbstractRestController
+class OrderController extends AbstractRestController implements RestControllerInterface
 {
-
 
     /**
      * @return DynamicModelInterface
@@ -244,8 +261,6 @@ For custom routes, we can create Requests like the following code. In this examp
 
 ```php
 
-<?php
-
 namespace App\Http\Requests\Api\Orders;
 
 use ViaRest\Http\Requests\Api\CrudRequestInterface;
@@ -295,6 +310,7 @@ class UnhandledRequest extends AbstractRequest implements CrudRequestInterface
 ```json
 
 {
+    "current_page": 1,
     "data": [
         {
             "id": 1,
@@ -320,7 +336,17 @@ class UnhandledRequest extends AbstractRequest implements CrudRequestInterface
             "created_at": "2019-05-29 17:27:44",
             "updated_at": "2019-05-29 17:27:44"
         }
-    ]
+    ],
+    "first_page_url": "http://127.0.0.1:8000/api/v1/users?page=1",
+    "from": 1,
+    "last_page": 1,
+    "last_page_url": "http://127.0.0.1:8000/api/v1/users?page=1",
+    "next_page_url": null,
+    "path": "http://127.0.0.1:8000/api/v1/users",
+    "per_page": 15,
+    "prev_page_url": null,
+    "to": 3,
+    "total": 3
 }
 
 
@@ -331,6 +357,7 @@ class UnhandledRequest extends AbstractRequest implements CrudRequestInterface
 ```json
 
 {
+    "current_page": 1,
     "data": [
         {
             "id": 1,
@@ -346,7 +373,17 @@ class UnhandledRequest extends AbstractRequest implements CrudRequestInterface
             "created_at": "2019-06-04 23:43:08",
             "updated_at": "2019-06-04 23:43:08"
         }
-    ]
+    ],
+    "first_page_url": "http://127.0.0.1:8000/api/v1/orders?page=1",
+    "from": 1,
+    "last_page": 1,
+    "last_page_url": "http://127.0.0.1:8000/api/v1/orders?page=1",
+    "next_page_url": null,
+    "path": "http://127.0.0.1:8000/api/v1/orders",
+    "per_page": 15,
+    "prev_page_url": null,
+    "to": 2,
+    "total": 2
 }
 
 

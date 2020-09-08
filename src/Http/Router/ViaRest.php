@@ -21,6 +21,30 @@ use Illuminate\Support\Str;
 class ViaRest
 {
 
+    /**
+     * Id Validation
+     *
+     * @var string
+     * */
+    protected static $idValidation = '[0-9]+';
+
+
+    /**
+     * Set Id Validation
+     *
+     * @param $validation string
+     * */
+    public static function setIdValidation(string $validation)
+    {
+        self::$idValidation = $validation;
+    }
+
+    /**
+     * Building routes
+     *
+     * @param $version string
+     * @param $config array
+     * */
     public static function handle(string $version, array $config)
     {
         Route::group(['prefix' => $version], function () use ($config) {
@@ -42,7 +66,7 @@ class ViaRest
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->fetch($request, $id);
-                    })->where('id', '[0-9]+');
+                    })->where('id', self::$idValidation);
 
                     Route::post($url, function (DefaultRequest $request) use ($via) {
                         $modelName  = $via->getTarget();
@@ -56,14 +80,14 @@ class ViaRest
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->update($request, $id);
-                    })->where('id', '[0-9]+');
+                    })->where('id', self::$idValidation);
 
                     Route::delete($url . '/{id}', function (DefaultRequest $request, $id) use ($via) {
                         $modelName  = $via->getTarget();
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->destroy($request, $id);
-                    })->where('id', '[0-9]+');
+                    })->where('id', self::$idValidations);
 
                 } elseif ($via instanceof ControllerRoute) {
 
@@ -71,13 +95,13 @@ class ViaRest
 
                     Route::get($url, $controllerName . '@fetchAll');
 
-                    Route::get($url . '/{id}', $controllerName . '@fetch')->where('id', '[0-9]+');
+                    Route::get($url . '/{id}', $controllerName . '@fetch')->where('id', self::$idValidation);
 
                     Route::post($url, $controllerName . '@create');
 
-                    Route::put($url . '/{id}', $controllerName . '@update')->where('id', '[0-9]+');
+                    Route::put($url . '/{id}', $controllerName . '@update')->where('id', self::$idValidation);
 
-                    Route::delete($url . '/{id}', $controllerName . '@destroy')->where('id', '[0-9]+');
+                    Route::delete($url . '/{id}', $controllerName . '@destroy')->where('id', self::$idValidation);
 
                     foreach ($via->getCustoms() as $endpoint => $conf) {
                         list($method, $action) = $conf;
@@ -106,7 +130,7 @@ class ViaRest
                         $controller = new DynamicRestRelationController(new $relation(), Str::singular($identifier) . '_id', $joinId);
 
                         return $controller->fetchAll($request);
-                    })->where('join_id', '[0-9]+');
+                    })->where('join_id', self::$idValidation);
 
                     Route::post($url . '/{join_id}/' . $route, function (DefaultRequest $request, $joinId) use ($via, $relation) {
                         $refl = new \ReflectionClass($via->getTarget());
@@ -114,7 +138,7 @@ class ViaRest
                         $controller = new DynamicRestRelationController(new $relation(), Str::singular($identifier) . '_id', $joinId);
 
                         return $controller->create($request);
-                    })->where('join_id', '[0-9]+');
+                    })->where('join_id', self::$idValidation);
 
                 }
 

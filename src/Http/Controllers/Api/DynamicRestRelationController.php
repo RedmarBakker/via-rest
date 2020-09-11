@@ -72,7 +72,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
         try {
 
             $modelName = ucfirst(explode('_', $this->identifier)[0]);
-            $modelNS = '\App\Model\\' . $modelName;
+            $modelNS = '\App\Models\\' . $modelName;
 
             $relf = new \ReflectionClass($this->getModel());
             $relationName = $relf->getShortName();

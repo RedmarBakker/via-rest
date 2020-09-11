@@ -99,7 +99,7 @@ class ViaRest
 
                     Route::post($url, $controllerName . '@create');
 
-                    Route::put($url . '/{id}', $controllerName . '@update')->where('id', selfs::$idValidation);
+                    Route::put($url . '/{id}', $controllerName . '@update')->where('id', self::$idValidation);
 
                     Route::delete($url . '/{id}', $controllerName . '@destroy')->where('id', self::$idValidation);
 

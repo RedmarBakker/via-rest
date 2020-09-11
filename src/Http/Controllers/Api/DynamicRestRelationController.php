@@ -39,7 +39,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
      * @param $identifier string
      * @param $joinId int
      * */
-    public function __construct(DynamicModelInterface $model, string $identifier, int $joinId)
+    public function __construct(DynamicModelInterface $model, string $identifier, string $joinId)
     {
         $this->model        = $model;
         $this->identifier   = $identifier;

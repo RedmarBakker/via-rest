@@ -130,7 +130,7 @@ class ViaRest
                         $controller = new DynamicRestRelationController(new $relation(), Str::singular($identifier) . '_id', $joinId);
 
                         return $controller->fetchAll($request);
-                    })->where('join_id', $this::$idValidation);
+                    })->where('join_id', self::$idValidation);
 
                     Route::post($url . '/{join_id}/' . $route, function (DefaultRequest $request, $joinId) use ($via, $relation) {
                         $refl = new \ReflectionClass($via->getTarget());
@@ -138,7 +138,7 @@ class ViaRest
                         $controller = new DynamicRestRelationController(new $relation(), Str::singular($identifier) . '_id', $joinId);
 
                         return $controller->create($request);
-                    })->where('join_id', $this::$idValidation);
+                    })->where('join_id', self::$idValidation);
 
                 }
 

@@ -66,7 +66,7 @@ class ViaRest
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->fetch($request, $id);
-                    })->where('id', $this::$idValidation);
+                    })->where('id', self::$idValidation);
 
                     Route::post($url, function (DefaultRequest $request) use ($via) {
                         $modelName  = $via->getTarget();
@@ -80,14 +80,14 @@ class ViaRest
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->update($request, $id);
-                    })->where('id', $this::$idValidation);
+                    })->where('id', self::$idValidation);
 
                     Route::delete($url . '/{id}', function (DefaultRequest $request, $id) use ($via) {
                         $modelName  = $via->getTarget();
                         $controller = new DynamicRestController(new $modelName());
 
                         return $controller->destroy($request, $id);
-                    })->where('id', $this::$idValidations);
+                    })->where('id', self::$idValidation);
 
                 } elseif ($via instanceof ControllerRoute) {
 
@@ -95,13 +95,13 @@ class ViaRest
 
                     Route::get($url, $controllerName . '@fetchAll');
 
-                    Route::get($url . '/{id}', $controllerName . '@fetch')->where('id', $this::$idValidation);
+                    Route::get($url . '/{id}', $controllerName . '@fetch')->where('id', self::$idValidation);
 
                     Route::post($url, $controllerName . '@create');
 
-                    Route::put($url . '/{id}', $controllerName . '@update')->where('id', $this::$idValidation);
+                    Route::put($url . '/{id}', $controllerName . '@update')->where('id', selfs::$idValidation);
 
-                    Route::delete($url . '/{id}', $controllerName . '@destroy')->where('id', $this::$idValidation);
+                    Route::delete($url . '/{id}', $controllerName . '@destroy')->where('id', self::$idValidation);
 
                     foreach ($via->getCustoms() as $endpoint => $conf) {
                         list($method, $action) = $conf;

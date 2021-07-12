@@ -105,7 +105,7 @@ class DynamicRestRelationController extends AbstractRestController
             }
 
             $relationMethod = $rootReflection->getMethod($this->relation);
-            $return = $relationMethod->invoke($this->rootClass);
+            $return = $relationMethod->invoke(new $this->rootClass);
 
             if (! $return instanceof Relation) {
                 throw new ConfigurationException(sprintf(

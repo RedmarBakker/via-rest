@@ -17,6 +17,7 @@ use ViaRest\Http\Controllers\Api\RestControllerInterface;
 use ViaRest\Http\Requests\Api\DefaultRequest;
 use ViaRest\Models\DynamicModelInterface;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 
 class ViaRest
 {
@@ -134,16 +135,39 @@ class ViaRest
                     continue;
                 }
 
-                foreach ($via->getRelations() as $relation => $relationClass) {
+                foreach ($via->getRelations() as $relation => $relationOptions) {
+                    $create = null;
+                    $relationClass = '';
 
-                    Route::get($url . '/{join_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass) {
-                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass);
+                    $validator = Validator::make($relationOptions, [
+                        'relation_class' => ['required'],
+                        'create' => ['bool']
+                    ]);
+
+                    try {
+                        $validator->validate();
+                    } catch (\Exception $e) {
+                        throw new ConfigurationException(sprintf(
+                            $validator->errors() .
+                            'See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
+                        ));
+                    }
+
+                    if (is_array($relationOptions)) {
+                        $create         = $relationOptions['create'] ?: $create;
+                        $relationClass  = $relationOptions['relation_class'] ?: $relationClass;
+                    } else {
+                        $relationClass = $relationOptions;
+                    }
+
+                    Route::get($url . '/{join_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass, $create) {
+                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass, $create);
 
                         return $controller->fetchAll($request);
                     })->where('join_id', self::$idValidation);
 
-                    Route::post($url . '/{join_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass) {
-                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass);
+                    Route::post($url . '/{join_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass, $create) {
+                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass, $create);
 
                         return $controller->create($request);
                     })->where('join_id', self::$idValidation);

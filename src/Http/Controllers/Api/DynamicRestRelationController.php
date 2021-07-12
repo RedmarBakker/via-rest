@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Validation\Rule;
 
 class DynamicRestRelationController extends AbstractRestController implements RestControllerInterface
 {
@@ -38,6 +39,11 @@ class DynamicRestRelationController extends AbstractRestController implements Re
      * */
     protected $relationClass;
 
+    /**
+     * @var bool
+     * */
+    protected $create;
+
 
     /**
      * Constructor
@@ -47,8 +53,9 @@ class DynamicRestRelationController extends AbstractRestController implements Re
      * @param $rootId
      * @param string $relation
      * @param string $relationClass
+     * @param bool $create
      * */
-    public function __construct(string $rootElement, $rootId, string $relation, string $relationClass)
+    public function __construct(string $rootElement, $rootId, string $relation, string $relationClass, bool $create)
     {
         try {
             $reflection = new \ReflectionClass($rootElement);
@@ -69,9 +76,10 @@ class DynamicRestRelationController extends AbstractRestController implements Re
             ));
         }
 
-        $this->rootId       = $rootId;
-        $this->relation     = $relation;
-        $this->relatinClass = $relationClass;
+        $this->rootId        = $rootId;
+        $this->relation      = $relation;
+        $this->relationClass = $relationClass;
+        $this->create        = $create;
 
         $this->checkRelations();
     }
@@ -127,26 +135,46 @@ class DynamicRestRelationController extends AbstractRestController implements Re
      */
     public function create(Request $request): JsonResponse
     {
-        $createRequest = call_user_func([$this->getModelClass(), 'instanceCreateRequest']);
-
-        if (!$createRequest->authorize()) {
-            return $this->forbidden();
-        }
-
-        $validator = Validator::make($request->all(), $createRequest->rules());
-
         try {
-            $input = $validator->validate();
-        } catch (\Exception $e) {
-            return $this->invalidInput($validator->errors());
-        }
+            if (is_null($this->create)) {
+                $this->create = $request->input('create', true);
+            }
 
-        try {
+            if ($this->create) {
+                $createRequest = call_user_func([$this->getModelClass(), 'instanceCreateRequest']);
+
+                if (!$createRequest->authorize()) {
+                    return $this->forbidden();
+                }
+
+                $validator = Validator::make($request->all(), $createRequest->rules());
+            } else {
+                $validator = Validator::make($request->all(), [
+                    'id' => [
+                        'required',
+                        'exists:' . (new $this->relationClass())->getTable() . ',id'
+                    ]
+                ]);
+            }
+
+            try {
+                $input = $validator->validate();
+            } catch (\Exception $e) {
+                return $this->invalidInput($validator->errors());
+            }
+
+            if ($this->create) {
+                $target = new $this->relationClass($input);
+            } else {
+                $target = call_user_func([$this->relationClass, 'find'], $input['id']);
+            }
+
             $root = call_user_func([$this->rootClass, 'find'], $this->rootId);
+            $root->{$this->relation}()->save($target);
 
-            $obj = new ($this->relationClass)($input);
-            $root->{$this->relation}()->save($obj);
-
+            return ok([
+                $this->relation => $target
+            ]);
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);
         }

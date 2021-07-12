@@ -8,6 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 interface RestControllerInterface
 {
 
-    public function getModelClass(): string;
+    public static function getModelClass(): string;
 
 }

@@ -8,14 +8,14 @@ use ViaRest\Http\Requests\Api\FetchAllRequest;
 interface DynamicModelInterface
 {
 
-    public function instanceCreateRequest(): CrudRequestInterface;
+    public static function instanceCreateRequest(): CrudRequestInterface;
 
-    public function instanceUpdateRequest(): CrudRequestInterface;
+    public static function instanceUpdateRequest(): CrudRequestInterface;
 
-    public function instanceFetchRequest(): CrudRequestInterface;
+    public static function instanceFetchRequest(): CrudRequestInterface;
 
-    public function instanceFetchAllRequest(): FetchAllRequest;
+    public static function instanceFetchAllRequest(): FetchAllRequest;
 
-    public function instanceDestroyRequest(): CrudRequestInterface;
+    public static function instanceDestroyRequest(): CrudRequestInterface;
 
 }

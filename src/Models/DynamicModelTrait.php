@@ -56,7 +56,7 @@ trait DynamicModelTrait
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    public function instanceDestroyRequest(): CrudRequestInterface
+    public static function instanceDestroyRequest(): CrudRequestInterface
     {
         return self::instanceRequest('DestroyRequest');
     }

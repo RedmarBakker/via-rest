@@ -4,29 +4,29 @@ namespace ViaRest\Http\Controllers\Api;
 
 use ViaRest\Models\DynamicModelInterface;
 
-class DynamicRestController extends AbstractRestController
+class DynamicRestController extends AbstractRestController implements RestControllerInterface
 {
 
     /**
-     * @var DynamicModelInterface
+     * @var string
      * */
-    protected $model;
+    protected $modelClass;
 
 
     /**
      * Constructor
      *
-     * @param $model DynamicModelInterface
-     * */
-    public function __construct(DynamicModelInterface $model)
+     * @param string $modelClass
+     */
+    public function __construct(string $modelClass)
     {
-        $this->model = $model;
+        $this->modelClass = $modelClass;
     }
 
     /**
-     * @return DynamicModelInterface
+     * @return string
      */
-    public function getModel(): DynamicModelInterface
+    public function getModelClass(): string
     {
         return $this->model;
     }

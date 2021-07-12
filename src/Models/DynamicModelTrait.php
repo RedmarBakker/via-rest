@@ -11,43 +11,43 @@ use ViaRest\Http\Requests\Api\FetchAllRequest;
 trait DynamicModelTrait
 {
 
-    private $base = '%s\Http\Requests\Api\%s\%s';
+    private static $base = '%s\Http\Requests\Api\%s\%s';
 
 
     /**
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    public function instanceCreateRequest(): CrudRequestInterface
+    public static function instanceCreateRequest(): CrudRequestInterface
     {
-        return $this->instanceRequest('CreateRequest');
+        return self::instanceRequest('CreateRequest');
     }
 
     /**
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    public function instanceUpdateRequest(): CrudRequestInterface
+    public static function instanceUpdateRequest(): CrudRequestInterface
     {
-        return $this->instanceRequest('UpdateRequest');
+        return self::instanceRequest('UpdateRequest');
     }
 
     /**
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    public function instanceFetchRequest(): CrudRequestInterface
+    public static function instanceFetchRequest(): CrudRequestInterface
     {
-        return $this->instanceRequest('FetchRequest');
+        return self::instanceRequest('FetchRequest');
     }
 
     /**
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    public function instanceFetchAllRequest(): FetchAllRequest
+    public static function instanceFetchAllRequest(): FetchAllRequest
     {
-        $request = $this->instanceRequest('FetchAllRequest');
+        $request = self::instanceRequest('FetchAllRequest');
 
         return $request instanceof FetchAllRequest ? $request : new FetchAllRequest();
     }
@@ -58,7 +58,7 @@ trait DynamicModelTrait
      * */
     public function instanceDestroyRequest(): CrudRequestInterface
     {
-        return $this->instanceRequest('DestroyRequest');
+        return self::instanceRequest('DestroyRequest');
     }
 
     /**
@@ -66,14 +66,14 @@ trait DynamicModelTrait
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    private function instanceRequest(string $endpoint): CrudRequestInterface
+    private static function instanceRequest(string $endpoint): CrudRequestInterface
     {
         try {
-            $refl = new \ReflectionClass($this);
+            $refl = new \ReflectionClass(get_called_class());
             $module = explode('\\', $refl->getNamespaceName())[0];
             $modelName = $refl->getShortName();
 
-            $className = sprintf($this->base, $module, Str::plural($modelName), $endpoint);
+            $className = sprintf(self::$base, $module, Str::plural($modelName), $endpoint);
 
             if (!class_exists($className)) {
                 return new DefaultRequest();

@@ -59,7 +59,7 @@ abstract class AbstractRestController extends Controller
      * */
     public function fetchAll(Request $request)
     {
-        $fetchAllRequest = $this->getModel()->instanceFetchAllRequest();
+        $fetchAllRequest = call_user_func([$this->getModelClass(), 'instanceFetchAllRequest']);
 
         if (!$fetchAllRequest->authorize()) {
             return $this->forbidden();
@@ -88,7 +88,7 @@ abstract class AbstractRestController extends Controller
      * */
     public function fetch(Request $request, $id)
     {
-        $fetchRequest = $this->getModel()->instanceFetchRequest();
+        $fetchRequest = call_user_func([$this->getModelClass(), 'instanceFetchRequest']);
 
         if (!$fetchRequest->authorize()) {
             return $this->forbidden();
@@ -117,7 +117,7 @@ abstract class AbstractRestController extends Controller
      * */
     public function create(Request $request)
     {
-        $createRequest = $this->getModel()->instanceCreateRequest();
+        $createRequest = call_user_func([$this->getModelClass(), 'instanceCreateRequest']);
 
         if (!$createRequest->authorize()) {
             return $this->forbidden();
@@ -146,7 +146,7 @@ abstract class AbstractRestController extends Controller
      * */
     public function update(Request $request, $id)
     {
-        $updateRequest = $this->getModel()->instanceUpdateRequest();
+        $updateRequest = call_user_func([$this->getModelClass(), 'instanceUpdateRequest']);
 
         if (!$updateRequest->authorize()) {
             return $this->forbidden();
@@ -176,7 +176,7 @@ abstract class AbstractRestController extends Controller
      * */
     public function destroy(Request $request, $id)
     {
-        $destroyRequest = $this->getModel()->instanceDestroyRequest();
+        $destroyRequest = call_user_func([$this->getModelClass(), 'instanceDestroyRequest']);
 
         if (!$destroyRequest->authorize()) {
             return $this->forbidden();
@@ -206,7 +206,7 @@ abstract class AbstractRestController extends Controller
     public function doCreate(array $input): JsonResponse
     {
         return ok([
-            'data' => call_user_func([$this->getModel(), 'create'], $input)->refresh()
+            'data' => call_user_func([$this->getModelClass(), 'create'], $input)->refresh()
         ]);
     }
 
@@ -218,7 +218,10 @@ abstract class AbstractRestController extends Controller
      */
     public function doFetch($id, array $input): JsonResponse
     {
-        $item = $this->getModel()->with($input['relations'] ?? [])->find($id);
+        $item = call_user_func(
+            [$this->getModelClass(), 'with'],
+            $input['relations'] ?? []
+        )->find($id);
 
         if ($item == null) {
             return $this->notFound();
@@ -237,7 +240,9 @@ abstract class AbstractRestController extends Controller
      */
     public function doFetchAll(array $input): JsonResponse
     {
-        $result = $this->getModel()->with($input['relations'] ?? []);
+        $result = call_user_func(
+            [$this->getModelClass(), 'with'],
+            $input['relations'] ?? []);
 
         $orderDirection = $input['order_direction'] ?? self::ORDER_DIRECTION;
         if ($orderDirection == 'random') {
@@ -263,7 +268,7 @@ abstract class AbstractRestController extends Controller
     public function doUpdate($id, array $input): JsonResponse
     {
         /** @var $item Model */
-        $item = call_user_func([$this->getModel(), 'find'], $id);
+        $item = call_user_func([$this->getModelClass(), 'find'], $id);
 
         if ($item == null) {
             return $this->notFound();
@@ -287,7 +292,7 @@ abstract class AbstractRestController extends Controller
     public function doDestroy($id, array $input): JsonResponse
     {
         /** @var $item Model */
-        $item = call_user_func([$this->getModel(), 'find'], $id);
+        $item = call_user_func([$this->getModelClass(), 'find'], $id);
 
         if ($item == null) {
             return $this->notFound();

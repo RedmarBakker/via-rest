@@ -28,6 +28,13 @@ class ViaRest
      * */
     protected static $idValidation = '[0-9]+';
 
+    /**
+     * Route Group Middleware
+     *
+     * @var string
+     * */
+    protected static $middleware = '';
+
 
     /**
      * Set Id Validation
@@ -40,6 +47,16 @@ class ViaRest
     }
 
     /**
+     * Configure a middleware for the root route
+     *
+     * @param $middleware string
+     * */
+    public static function setMiddleware(string $middleware)
+    {
+        self::$middleware = $middleware;
+    }
+
+    /**
      * Building routes
      *
      * @param $version string
@@ -47,7 +64,7 @@ class ViaRest
      * */
     public static function handle(string $version, array $config)
     {
-        Route::group(['prefix' => $version], function () use ($config) {
+        Route::group(['prefix' => $version, 'middleware' => self::$middleware], function () use ($config) {
 
             foreach ($config as $url => $via) {
                 /** @var $via self */
@@ -55,36 +72,31 @@ class ViaRest
                 if ($via instanceof ModelRoute) {
 
                     Route::get($url, function (DefaultRequest $request) use ($via) {
-                        $modelName  = $via->getTarget();
-                        $controller = new DynamicRestController(new $modelName());
+                        $controller = new DynamicRestController($via->getTarget());
 
                         return $controller->fetchAll($request);
                     });
 
                     Route::get($url . '/{id}', function (DefaultRequest $request, $id) use ($via) {
-                        $modelName  = $via->getTarget();
-                        $controller = new DynamicRestController(new $modelName());
+                        $controller = new DynamicRestController($via->getTarget());
 
                         return $controller->fetch($request, $id);
                     })->where('id', self::$idValidation);
 
                     Route::post($url, function (DefaultRequest $request) use ($via) {
-                        $modelName  = $via->getTarget();
-                        $controller = new DynamicRestController(new $modelName());
+                        $controller = new DynamicRestController($via->getTarget());
 
                         return $controller->create($request);
                     });
 
                     Route::put($url . '/{id}', function (DefaultRequest $request, $id) use ($via) {
-                        $modelName  = $via->getTarget();
-                        $controller = new DynamicRestController(new $modelName());
+                        $controller = new DynamicRestController($via->getTarget());
 
                         return $controller->update($request, $id);
                     })->where('id', self::$idValidation);
 
                     Route::delete($url . '/{id}', function (DefaultRequest $request, $id) use ($via) {
-                        $modelName  = $via->getTarget();
-                        $controller = new DynamicRestController(new $modelName());
+                        $controller = new DynamicRestController($via->getTarget());
 
                         return $controller->destroy($request, $id);
                     })->where('id', self::$idValidation);
@@ -122,20 +134,16 @@ class ViaRest
                     continue;
                 }
 
-                foreach ($via->getRelations() as $route => $relation) {
+                foreach ($via->getRelations() as $relation => $relationClass) {
 
-                    Route::get($url . '/{join_id}/' . $route, function (DefaultRequest $request, $joinId) use ($via, $relation) {
-                        $refl = new \ReflectionClass($via->getTarget());
-                        $identifier = str_replace('controller', '', strtolower($refl->getShortName()));
-                        $controller = new DynamicRestRelationController(new $relation(), Str::singular($identifier) . '_id', $joinId);
+                    Route::get($url . '/{join_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass) {
+                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass);
 
                         return $controller->fetchAll($request);
                     })->where('join_id', self::$idValidation);
 
-                    Route::post($url . '/{join_id}/' . $route, function (DefaultRequest $request, $joinId) use ($via, $relation) {
-                        $refl = new \ReflectionClass($via->getTarget());
-                        $identifier = str_replace('controller', '', strtolower($refl->getShortName()));
-                        $controller = new DynamicRestRelationController(new $relation(), Str::singular($identifier) . '_id', $joinId);
+                    Route::post($url . '/{join_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass) {
+                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass);
 
                         return $controller->create($request);
                     })->where('join_id', self::$idValidation);

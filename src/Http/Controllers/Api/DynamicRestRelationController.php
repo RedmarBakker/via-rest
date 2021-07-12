@@ -6,44 +6,117 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller;
+use ViaRest\Exceptions\Api\ConfigurationException;
 use ViaRest\Models\DynamicModelInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class DynamicRestRelationController extends AbstractRestController implements RestControllerInterface
 {
 
     /**
-     * @var DynamicModelInterface
+     * @var string
      * */
-    protected $model;
+    protected $rootClass;
 
     /**
      * @var int
      * */
-    protected $identifier;
+    protected $rootId;
 
     /**
-     * @var int
+     * @var string
      * */
-    protected $joinId;
+    protected $relation;
+
+    /**
+     * @var string
+     * */
+    protected $relationClass;
 
 
     /**
      * Constructor
      *
-     * @param $model DynamicModelInterface
-     * @param $identifier string
-     * @param $joinId int
+     * @throws ConfigurationException
+     * @param string $rootElement
+     * @param $rootId
+     * @param string $relation
+     * @param string $relationClass
      * */
-    public function __construct(DynamicModelInterface $model, string $identifier, string $joinId)
+    public function __construct(string $rootElement, $rootId, string $relation, string $relationClass)
     {
-        $this->model        = $model;
-        $this->identifier   = $identifier;
-        $this->joinId       = $joinId;
+        try {
+            $reflection = new \ReflectionClass($rootElement);
+            if ($reflection->implementsInterface(RestControllerInterface::class)) {
+                $this->rootClass = call_user_func([$rootElement, 'getModelClass']);
+            } else if($reflection->implementsInterface(DynamicModelInterface::class)) {
+                $this->rootClass = $rootElement;
+            } else {
+                throw new ConfigurationException(sprintf(
+                    'Model class could not be fetched. Are you sure you followed the docs? See the docs: ' .
+                    'https://github.com/RedmarBakker/via-rest'
+                ));
+            }
+        } catch (\ReflectionException $e) {
+            throw new ConfigurationException(sprintf(
+                'Model class could not be fetched. Check your route target. See the docs: ' .
+                'https://github.com/RedmarBakker/via-rest'
+            ));
+        }
+
+        $this->rootId       = $rootId;
+        $this->relation     = $relation;
+        $this->relatinClass = $relationClass;
+
+        $this->checkRelations();
+    }
+
+    /**
+     * Check if this configuration is correct.
+     *
+     * @throws ConfigurationException
+     * @return boolean
+     */
+    public function checkRelations()
+    {
+        try {
+            $rootReflection = new \ReflectionClass($this->rootClass);
+
+            if (! $rootReflection->hasMethod($this->relation)) {
+                throw new ConfigurationException(sprintf(
+                    'Model %s could not be configured as a relation route, because relation %s was not found. See the docs: ' .
+                    'https://github.com/RedmarBakker/via-rest#configuring-api-routes-with-a-relation',
+                    $this->rootClass,
+                    $this->relation
+                ));
+            }
+
+            $relationMethod = $rootReflection->getMethod($this->relation);
+            $return = $relationMethod->invoke($this->rootClass);
+
+            if (! $return instanceof Relation) {
+                throw new ConfigurationException(sprintf(
+                    'Model %s could not be configured as a relation route, because relation %s was of type %s. See the docs: ' .
+                    'https://github.com/RedmarBakker/via-rest#configuring-api-routes-with-a-relation',
+                    $this->rootClass,
+                    $this->relation,
+                    Relation::class
+                ));
+            }
+        } catch (\ReflectionException $e) {
+            throw new ConfigurationException(sprintf(
+                'Model %s could not be configured as a relation route. See the docs: ' .
+                'https://github.com/RedmarBakker/via-rest#configuring-api-routes-with-a-relation',
+                $this->rootClass
+            ));
+        }
+
+        return true;
     }
 
     /**
@@ -54,7 +127,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
      */
     public function create(Request $request): JsonResponse
     {
-        $createRequest = $this->getModel()->instanceCreateRequest();
+        $createRequest = call_user_func([$this->getModelClass(), 'instanceCreateRequest']);
 
         if (!$createRequest->authorize()) {
             return $this->forbidden();
@@ -64,37 +137,15 @@ class DynamicRestRelationController extends AbstractRestController implements Re
 
         try {
             $input = $validator->validate();
-            $input = array_merge($input, [$this->identifier => $this->joinId]);
         } catch (\Exception $e) {
             return $this->invalidInput($validator->errors());
         }
 
         try {
+            $root = call_user_func([$this->rootClass, 'find'], $this->rootId);
 
-            $modelName = ucfirst(explode('_', $this->identifier)[0]);
-            $modelNS = '\App\Models\\' . $modelName;
-
-            $relf = new \ReflectionClass($this->getModel());
-            $relationName = $relf->getShortName();
-
-            $relation = Str::plural(strtolower($relationName));
-
-            $join = call_user_func([$modelNS, 'find'], $this->joinId);
-
-            if (method_exists($join, $relation)) {
-                unset($input[$this->identifier]);
-
-                $class = get_class($this->getModel());
-
-                $obj = new $class($input);
-                $join->$relation()->save($obj);
-
-                return ok([
-                    'data' => $obj
-                ]);
-            } else {
-                return self::doCreate($input);
-            }
+            $obj = new ($this->relationClass)($input);
+            $root->{$this->relation}()->save($obj);
 
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);
@@ -121,7 +172,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
      */
     public function fetchAll(Request $request): JsonResponse
     {
-        $fetchAllRequest = $this->getModel()->instanceFetchAllRequest();
+        $fetchAllRequest = call_user_func([$this->getModelClass(), 'instanceFetchAllRequest']);
 
         if (!$fetchAllRequest->authorize()) {
             return $this->forbidden();
@@ -136,25 +187,10 @@ class DynamicRestRelationController extends AbstractRestController implements Re
         }
 
         try {
+            $root = call_user_func([$this->rootClass, 'find'], $this->rootId);
 
-            $modelName = ucfirst(explode('_', $this->identifier)[0]);
-            $modelNS = '\App\Models\\' . $modelName;
-
-            $relf = new \ReflectionClass($this->getModel());
-            $relationName = $relf->getShortName();
-
-            $relation = Str::plural(strtolower($relationName));
-
-            $join = call_user_func([$modelNS, 'find'], $this->joinId);
-
-            if (method_exists($join, $relation)) {
-                $result = $join->$relation();
-                $result->get()->load($input['relations'] ?? []);
-            } else {
-                $result = $this->getModel();
-                $result->where($this->identifier, '=', $this->joinId);
-                $result->load($input['relations'] ?? []);
-            }
+            $result = $root->{$this->relation}();
+            $result->get()->load($input['relations'] ?? []);
 
             $orderDirection = $input['order_direction'] ?? self::ORDER_DIRECTION;
             if ($orderDirection == 'random') {
@@ -199,11 +235,11 @@ class DynamicRestRelationController extends AbstractRestController implements Re
     }
 
     /**
-     * @return DynamicModelInterface
+     * @return string
      */
-    public function getModel(): DynamicModelInterface
+    public function getModelClass(): string
     {
-        return $this->model;
+        return $this->rootClass;
     }
 
 }

@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Validation\Rule;
 
-class DynamicRestRelationController extends AbstractRestController implements RestControllerInterface
+class DynamicRestRelationController extends AbstractRestController
 {
 
     /**
@@ -55,7 +55,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
      * @param string $relationClass
      * @param bool $create
      * */
-    public function __construct(string $rootElement, $rootId, string $relation, string $relationClass, bool $create)
+    public function __construct(string $rootElement, $rootId, string $relation, string $relationClass, $create)
     {
         try {
             $reflection = new \ReflectionClass($rootElement);
@@ -141,7 +141,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
             }
 
             if ($this->create) {
-                $createRequest = call_user_func([$this->getModelClass(), 'instanceCreateRequest']);
+                $createRequest = call_user_func([$this->rootClass, 'instanceCreateRequest']);
 
                 if (!$createRequest->authorize()) {
                     return $this->forbidden();
@@ -173,7 +173,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
             $root->{$this->relation}()->save($target);
 
             return ok([
-                $this->relation => $target
+                Str::singular($this->relation) => $target
             ]);
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);
@@ -200,7 +200,7 @@ class DynamicRestRelationController extends AbstractRestController implements Re
      */
     public function fetchAll(Request $request): JsonResponse
     {
-        $fetchAllRequest = call_user_func([$this->getModelClass(), 'instanceFetchAllRequest']);
+        $fetchAllRequest = call_user_func([$this->rootClass, 'instanceFetchAllRequest']);
 
         if (!$fetchAllRequest->authorize()) {
             return $this->forbidden();
@@ -260,14 +260,6 @@ class DynamicRestRelationController extends AbstractRestController implements Re
     public function destroy(Request $request, $id): JsonResponse
     {
         return $this->notAllowed();
-    }
-
-    /**
-     * @return string
-     */
-    public function getModelClass(): string
-    {
-        return $this->rootClass;
     }
 
 }

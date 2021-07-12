@@ -139,22 +139,22 @@ class ViaRest
                     $create = null;
                     $relationClass = '';
 
-                    $validator = Validator::make($relationOptions, [
-                        'relation_class' => ['required'],
-                        'create' => ['bool']
-                    ]);
-
-                    try {
-                        $validator->validate();
-                    } catch (\Exception $e) {
-                        throw new ConfigurationException(sprintf(
-                            $validator->errors() .
-                            'See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
-                        ));
-                    }
-
                     if (is_array($relationOptions)) {
-                        $create         = $relationOptions['create'] ?: $create;
+                        $validator = Validator::make($relationOptions, [
+                            'relation_class' => ['required'],
+                            'create' => ['bool']
+                        ]);
+
+                        try {
+                            $validator->validate();
+                        } catch (\Exception $e) {
+                            throw new ConfigurationException(sprintf(
+                                $validator->errors() .
+                                'See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
+                            ));
+                        }
+
+                        $create         = is_bool($relationOptions['create']) ? $relationOptions['create'] : $create;
                         $relationClass  = $relationOptions['relation_class'] ?: $relationClass;
                     } else {
                         $relationClass = $relationOptions;

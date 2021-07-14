@@ -8,6 +8,7 @@
 
 namespace ViaRest\Http\Router;
 
+use Illuminate\Validation\Rule;
 use ViaRest\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Controllers\Api\DynamicRestController;
 use ViaRest\Http\Controllers\Api\DynamicRestRelationController;
@@ -116,18 +117,71 @@ class ViaRest
 
                     Route::delete($url . '/{id}', $controllerName . '@destroy')->where('id', self::$idValidation);
 
-                    foreach ($via->getCustoms() as $endpoint => $conf) {
-                        list($method, $action) = $conf;
+                    foreach ($via->getCustoms() as $endpoint => $config) {
+                        $method = Request::METHOD_GET;
+                        $target = null;
+                        $idIntegration = false;
 
-                        switch (strtoupper($method)) {
-                            case Request::METHOD_GET:
-                                Route::get($url . '/' . $endpoint, $controllerName . '@' . $action);
-                            case Request::METHOD_PUT:
-                                Route::put($url . '/' . $endpoint, $controllerName . '@' . $action);
-                            case Request::METHOD_POST:
-                                Route::post($url . '/' . $endpoint, $controllerName . '@' . $action);
-                            case Request::METHOD_DELETE:
-                                Route::delete($url . '/' . $endpoint, $controllerName . '@' . $action);
+                        if (! is_array($config)) {
+                            throw new ConfigurationException(sprintf(
+                                'Custom method with name %s does not have the right configuration, expects an array. '.
+                                'See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
+                                $endpoint
+                            ));
+                        }
+
+                        $validator = Validator::make($config, [
+                            'method' => [Rule::in([
+                                Request::METHOD_GET,
+                                Request::METHOD_POST,
+                                Request::METHOD_PUT,
+                                Request::METHOD_PATCH,
+                                Request::METHOD_DELETE,
+                            ])],
+                            'target' => ['required'],
+                            'id_integration' => ['bool'],
+                        ]);
+
+                        try {
+                            $input = $validator->validate();
+                        } catch (\Exception $e) {
+                            throw new ConfigurationException(sprintf(
+                                $validator->errors() .
+                                'See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
+                            ));
+                        }
+
+                        $method         = isset($input['method']) ? $input['method'] : $method;
+                        $target         = $input['target'] ?: $target;
+                        $idIntegration  = isset($input['id_integration']) ? $input['id_integration'] : $idIntegration;
+
+
+                        if ($idIntegration == true) {
+                            switch (strtoupper($method)) {
+                                case Request::METHOD_GET:
+                                    Route::get($url . '/{id}/' . $endpoint, $controllerName . '@' . $action)
+                                        ->where('id', self::$idValidation);
+                                case Request::METHOD_PUT:
+                                    Route::put($url . '/{id}/' . $endpoint, $controllerName . '@' . $action)
+                                        ->where('id', self::$idValidation);
+                                case Request::METHOD_POST:
+                                    Route::post($url . '/{id}/' . $endpoint, $controllerName . '@' . $action)
+                                        ->where('id', self::$idValidation);
+                                case Request::METHOD_DELETE:
+                                    Route::delete($url . '/{id}/' . $endpoint, $controllerName . '@' . $action)
+                                        ->where('id', self::$idValidation);
+                            }
+                        } else {
+                            switch (strtoupper($method)) {
+                                case Request::METHOD_GET:
+                                    Route::get($url . '/' . $endpoint, $controllerName . '@' . $action);
+                                case Request::METHOD_PUT:
+                                    Route::put($url . '/' . $endpoint, $controllerName . '@' . $action);
+                                case Request::METHOD_POST:
+                                    Route::post($url . '/' . $endpoint, $controllerName . '@' . $action);
+                                case Request::METHOD_DELETE:
+                                    Route::delete($url . '/' . $endpoint, $controllerName . '@' . $action);
+                            }
                         }
                     }
 
@@ -136,17 +190,19 @@ class ViaRest
                 }
 
                 foreach ($via->getRelations() as $relation => $relationOptions) {
-                    $create = null;
+                    $create = false;
+                    $attach = false;
                     $relationClass = '';
 
                     if (is_array($relationOptions)) {
                         $validator = Validator::make($relationOptions, [
                             'relation_class' => ['required'],
-                            'create' => ['bool']
+                            'create' => ['bool'],
+                            'attach' => ['bool'],
                         ]);
 
                         try {
-                            $validator->validate();
+                            $input = $validator->validate();
                         } catch (\Exception $e) {
                             throw new ConfigurationException(sprintf(
                                 $validator->errors() .
@@ -154,23 +210,40 @@ class ViaRest
                             ));
                         }
 
-                        $create         = is_bool($relationOptions['create']) ? $relationOptions['create'] : $create;
-                        $relationClass  = $relationOptions['relation_class'] ?: $relationClass;
+                        $create         = isset($input['create']) ? $input['create'] : $create;
+                        $attach         = isset($input['attach']) ? $input['attach'] : $attach;
+                        $relationClass  = $input['relation_class'] ?: $relationClass;
                     } else {
                         $relationClass = $relationOptions;
                     }
 
-                    Route::get($url . '/{join_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass, $create) {
-                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass, $create);
+                    Route::get($url . '/{root_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass) {
+                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass);
 
                         return $controller->fetchAll($request);
-                    })->where('join_id', self::$idValidation);
+                    })->where('root_id', self::$idValidation);
 
-                    Route::post($url . '/{join_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass, $create) {
-                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass, $create);
+                    if ($create == true) {
+                        Route::post($url . '/{root_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($via, $relation, $relationClass) {
+                            $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass);
 
-                        return $controller->create($request);
-                    })->where('join_id', self::$idValidation);
+                            return $controller->create($request);
+                        })->where('root_id', self::$idValidation);
+                    }
+
+                    if ($attach == true) {
+                        Route::post($url . '/{root_id}/' . $relation . '/{target_id}', function (DefaultRequest $request, $rootId, $targetId) use ($via, $relation, $relationClass) {
+                            $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass);
+
+                            return $controller->attach($request, $targetId);
+                        })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
+                    }
+
+                    Route::delete($url . '/{root_id}/' . $relation . '/{target_id}', function (DefaultRequest $request, $rootId, $targetId) use ($via, $relation, $relationClass) {
+                        $controller = new DynamicRestRelationController($via->getTarget(), $rootId, $relation, $relationClass);
+
+                        return $controller->destroy($request, $targetId);
+                    })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
 
                 }
 

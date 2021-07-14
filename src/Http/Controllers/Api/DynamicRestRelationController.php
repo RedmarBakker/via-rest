@@ -39,11 +39,6 @@ class DynamicRestRelationController extends AbstractRestController
      * */
     protected $relationClass;
 
-    /**
-     * @var bool
-     * */
-    protected $create;
-
 
     /**
      * Constructor
@@ -53,9 +48,8 @@ class DynamicRestRelationController extends AbstractRestController
      * @param $rootId
      * @param string $relation
      * @param string $relationClass
-     * @param bool $create
      * */
-    public function __construct(string $rootElement, $rootId, string $relation, string $relationClass, $create)
+    public function __construct(string $rootElement, $rootId, string $relation, string $relationClass)
     {
         try {
             $reflection = new \ReflectionClass($rootElement);
@@ -79,7 +73,6 @@ class DynamicRestRelationController extends AbstractRestController
         $this->rootId        = $rootId;
         $this->relation      = $relation;
         $this->relationClass = $relationClass;
-        $this->create        = $create;
 
         $this->checkRelations();
     }
@@ -136,26 +129,13 @@ class DynamicRestRelationController extends AbstractRestController
     public function create(Request $request): JsonResponse
     {
         try {
-            if (is_null($this->create)) {
-                $this->create = $request->input('create', true);
+            $createRequest = call_user_func([$this->rootClass, 'instanceCreateRequest']);
+
+            if (!$createRequest->authorize()) {
+                return $this->forbidden();
             }
 
-            if ($this->create) {
-                $createRequest = call_user_func([$this->rootClass, 'instanceCreateRequest']);
-
-                if (!$createRequest->authorize()) {
-                    return $this->forbidden();
-                }
-
-                $validator = Validator::make($request->all(), $createRequest->rules());
-            } else {
-                $validator = Validator::make($request->all(), [
-                    'id' => [
-                        'required',
-                        'exists:' . (new $this->relationClass())->getTable() . ',id'
-                    ]
-                ]);
-            }
+            $validator = Validator::make($request->all(), $createRequest->rules());
 
             try {
                 $input = $validator->validate();
@@ -163,17 +143,46 @@ class DynamicRestRelationController extends AbstractRestController
                 return $this->invalidInput($validator->errors());
             }
 
-            if ($this->create) {
-                $target = new $this->relationClass($input);
-            } else {
-                $target = call_user_func([$this->relationClass, 'find'], $input['id']);
-            }
-
+            $target = new $this->relationClass($input);
             $root = call_user_func([$this->rootClass, 'find'], $this->rootId);
             $root->{$this->relation}()->save($target);
 
             return ok([
                 Str::singular($this->relation) => $target
+            ]);
+        } catch (\Exception $e) {
+            return error_json_response($e->getMessage(), $e->getTrace(), 500);
+        }
+    }
+
+    /**
+     * Create new model
+     *
+     * @param $request Request
+     * @param $id
+     * @return JsonResponse
+     */
+    public function attach(Request $request, $id): JsonResponse
+    {
+        try {
+            if ($this->rootClass == $this->relationClass && $this->rootId == $id) {
+                return json_response([
+                    'message' => 'Can not attach item to it\'s self.'
+                ], 400);
+            }
+
+            $root = call_user_func([$this->rootClass, 'find'], $this->rootId);
+
+            if (! $root->{$this->relation}->contains($id)) {
+                $root->{$this->relation}()->attach($id);
+            } else {
+                return json_response([
+                    'message' => 'Item already attached.'
+                ], 400);
+            }
+
+            return ok([
+                Str::singular($this->relation) => call_user_func([$this->relationClass, 'find'], $id)
             ]);
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);
@@ -259,7 +268,19 @@ class DynamicRestRelationController extends AbstractRestController
      */
     public function destroy(Request $request, $id): JsonResponse
     {
-        return $this->notAllowed();
+        try {
+            $root = call_user_func([$this->rootClass, 'find'], $this->rootId);
+
+            if (! $root->{$this->relation}->contains($id)) {
+                return $this->notFound();
+            }
+
+            $root->{$this->relation}()->detach($id);
+
+            return ok();
+        } catch (\Exception $e) {
+            return error_json_response($e->getMessage(), $e->getTrace(), 500);
+        }
     }
 
 }

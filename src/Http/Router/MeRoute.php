@@ -9,31 +9,24 @@
 namespace ViaRest\Http\Router;
 
 
-class ModelRoute implements RouteInterface
+class MeRoute implements RouteInterface
 {
 
     /**
-     * @var string
+     * Linked route
+     *
+     * @var RouteInterface
      * */
-    private $target;
-
-    /**
-     * @var array
-     * */
-    private $relations;
-
+    protected $route;
 
     /**
      * Constructor
      *
-     * @param $target string
-     * @param $relations array
-     * @param $customs array
+     * @param $route RouteInterface
      * */
-    public function __construct(string $target, array $relations = [])
+    public function __construct(RouteInterface $route)
     {
-        $this->target = $target;
-        $this->relations = $relations;
+        $this->route = $route;
     }
 
     /**
@@ -41,7 +34,7 @@ class ModelRoute implements RouteInterface
      */
     public function getTarget(): string
     {
-        return $this->target;
+        return $this->route->getTarget();
     }
 
     /**
@@ -49,7 +42,7 @@ class ModelRoute implements RouteInterface
      */
     public function setTarget(string $target): void
     {
-        $this->target = $target;
+        $this->route->setTarget($target);
     }
 
     /**
@@ -57,7 +50,7 @@ class ModelRoute implements RouteInterface
      */
     public function getRelations(): array
     {
-        return $this->relations;
+        return $this->route->getRelations();
     }
 
     /**
@@ -65,7 +58,17 @@ class ModelRoute implements RouteInterface
      */
     public function setRelations(array $relations): void
     {
-        $this->relations = $relations;
+        $this->route->setRelations($relations);
+    }
+
+    /**
+     * Get the linked route
+     *
+     * @return RouteInterface
+     * */
+    public function getLinkedRoute(): RouteInterface
+    {
+        return $this->route;
     }
 
 }

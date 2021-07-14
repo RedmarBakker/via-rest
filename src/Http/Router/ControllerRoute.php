@@ -9,7 +9,7 @@
 namespace ViaRest\Http\Router;
 
 
-class ControllerRoute
+class ControllerRoute implements RouteInterface
 {
 
     /**

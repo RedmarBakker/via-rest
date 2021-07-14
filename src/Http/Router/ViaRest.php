@@ -75,19 +75,17 @@ class ViaRest
                 switch (true) {
                     case $route instanceof ModelRoute:
                         self::configureModelRoute($url, $route);
+                        self::configureRelationRoutes($url, $route);
                         break;
                     case $route instanceof ControllerRoute:
                         self::configureControllerRoute($url, $route);
+                        self::configureRelationRoutes($url, $route);
                         break;
                     case $route instanceof MeRoute:
                         self::configureMeRoute($url, $route);
+                        self::configureRelationRoutes($url, $route);
                         break;
-                    default:
-                        continue;
                 }
-
-                self::configureRelationRoutes($url, $route);
-
             }
 
             Route::get('{any}', function ($any) {
@@ -246,8 +244,6 @@ class ViaRest
                 case $route instanceof ControllerRoute:
                     self::configureControllerRoute($url, $route);
                     break;
-                default:
-                    continue;
             }
         });
     }

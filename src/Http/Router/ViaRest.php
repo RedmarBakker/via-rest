@@ -8,6 +8,7 @@
 
 namespace ViaRest\Http\Router;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use ViaRest\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Controllers\Api\DynamicRestController;
@@ -83,7 +84,6 @@ class ViaRest
                         break;
                     case $route instanceof MeRoute:
                         self::configureMeRoute($url, $route);
-                        self::configureRelationRoutes($url, $route);
                         break;
                 }
             }
@@ -103,15 +103,20 @@ class ViaRest
      * @return void
      * @throws \Exception
      */
-    protected static function configureModelRoute(string $url, ModelRoute $route): void
+    protected static function configureModelRoute(string $url, ModelRoute $route, $idIntegration = true): void
     {
+        $urlPostfix = '';
+        if ($idIntegration == true) {
+            $urlPostfix = $url .= '/{id}';
+        }
+
         Route::get($url, function (DefaultRequest $request) use ($route) {
             $controller = new DynamicRestController($route->getTarget());
 
             return $controller->fetchAll($request);
         });
 
-        Route::get($url . '/{id}', function (DefaultRequest $request, $id) use ($route) {
+        Route::get($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
             $controller = new DynamicRestController($route->getTarget());
 
             return $controller->fetch($request, $id);
@@ -123,13 +128,13 @@ class ViaRest
             return $controller->create($request);
         });
 
-        Route::put($url . '/{id}', function (DefaultRequest $request, $id) use ($route) {
+        Route::put($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
             $controller = new DynamicRestController($route->getTarget());
 
             return $controller->update($request, $id);
         })->where('id', self::$idValidation);
 
-        Route::delete($url . '/{id}', function (DefaultRequest $request, $id) use ($route) {
+        Route::delete($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
             $controller = new DynamicRestController($route->getTarget());
 
             return $controller->destroy($request, $id);
@@ -144,19 +149,24 @@ class ViaRest
      * @return void
      * @throws ConfigurationException
      */
-    protected static function configureControllerRoute(string $url, ControllerRoute $route): void
+    protected static function configureControllerRoute(string $url, ControllerRoute $route, $idIntegration = true): void
     {
         $controllerName = '\\' . $route->getTarget();
 
+        $urlPostfix = '';
+        if ($idIntegration == true) {
+            $urlPostfix = '/{id}';
+        }
+
         Route::get($url, $controllerName . '@fetchAll');
 
-        Route::get($url . '/{id}', $controllerName . '@fetch')->where('id', self::$idValidation);
+        Route::get($url . $urlPostfix, $controllerName . '@fetch')->where('id', self::$idValidation);
 
         Route::post($url, $controllerName . '@create');
 
-        Route::put($url . '/{id}', $controllerName . '@update')->where('id', self::$idValidation);
+        Route::put($url . $urlPostfix, $controllerName . '@update')->where('id', self::$idValidation);
 
-        Route::delete($url . '/{id}', $controllerName . '@destroy')->where('id', self::$idValidation);
+        Route::delete($url . $urlPostfix, $controllerName . '@destroy')->where('id', self::$idValidation);
 
         foreach ($route->getCustoms() as $endpoint => $config) {
             $method = Request::METHOD_GET;
@@ -195,7 +205,6 @@ class ViaRest
             $method         = isset($input['method']) ? $input['method'] : $method;
             $target         = $input['target'] ?: $target;
             $idIntegration  = isset($input['id_integration']) ? $input['id_integration'] : $idIntegration;
-
 
             if ($idIntegration == true) {
                 switch (strtoupper($method)) {
@@ -238,13 +247,19 @@ class ViaRest
     {
         Route::group(['middleware' => 'me-injection'], function () use ($url, $route) {
             switch (true) {
-                case $route instanceof ModelRoute:
-                    self::configureModelRoute($url, $route);
+                case $route->getLinkedRoute() instanceof ModelRoute:
+
+                    self::configureModelRoute($url, $route->getLinkedRoute(), false);
+
                     break;
-                case $route instanceof ControllerRoute:
-                    self::configureControllerRoute($url, $route);
+                case $route->getLinkedRoute() instanceof ControllerRoute:
+
+                    self::configureControllerRoute($url, $route->getLinkedRoute(), false);
+
                     break;
             }
+
+            self::configureRelationRoutes($url, $route->getLinkedRoute(), false);
         });
     }
 
@@ -256,7 +271,7 @@ class ViaRest
      * @return void
      * @throws ConfigurationException
      */
-    protected static function configureRelationRoutes($url, RouteInterface $route): void
+    protected static function configureRelationRoutes($url, RouteInterface $route, $idIntegration = true): void
     {
         foreach ($route->getRelations() as $relation => $relationOptions) {
             $create = false;
@@ -286,32 +301,62 @@ class ViaRest
                 $relationClass = $relationOptions;
             }
 
-            Route::get($url . '/{root_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($route, $relation, $relationClass) {
+            if ($idIntegration == true) {
+                $url = $url .= '/{root_id}';
+            }
+
+            Route::get($url . '/' . $relation, function (...$args) use ($route, $relation, $relationClass) {
+                if (count($args) == 1) {
+                    list($rootId) = $args;
+                } else {
+                    $rootId = Auth::user()->id;
+                }
+
                 $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
 
-                return $controller->fetchAll($request);
+                return $controller->fetchAll(app(Request::class));
             })->where('root_id', self::$idValidation);
 
             if ($create == true) {
-                Route::post($url . '/{root_id}/' . $relation, function (DefaultRequest $request, $rootId) use ($route, $relation, $relationClass) {
+                Route::post($url . '/' . $relation, function (...$args) use ($route, $relation, $relationClass) {
+                    if (count($args) == 1) {
+                        list($rootId) = $args;
+                    } else {
+                        $rootId = Auth::user()->id;
+                    }
+
                     $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
 
-                    return $controller->create($request);
+                    return $controller->create(app(Request::class));
                 })->where('root_id', self::$idValidation);
             }
 
             if ($attach == true) {
-                Route::post($url . '/{root_id}/' . $relation . '/{target_id}', function (DefaultRequest $request, $rootId, $targetId) use ($route, $relation, $relationClass) {
+                Route::post($url . '/' . $relation . '/{target_id}', function (...$args) use ($route, $relation, $relationClass) {
+                    if (count($args) == 2) {
+                        list($targetId, $rootId) = $args;
+                    } else {
+                        list($targetId) = $args;
+                        $rootId = Auth::user()->id;
+                    }
+
                     $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
 
-                    return $controller->attach($request, $targetId);
+                    return $controller->attach(app(Request::class), $targetId);
                 })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
             }
 
-            Route::delete($url . '/{root_id}/' . $relation . '/{target_id}', function (DefaultRequest $request, $rootId, $targetId) use ($route, $relation, $relationClass) {
+            Route::delete($url . '/' . $relation . '/{target_id}', function (...$args) use ($route, $relation, $relationClass) {
+                if (count($args) == 2) {
+                    list($targetId, $rootId) = $args;
+                } else {
+                    list($targetId) = $args;
+                    $rootId = Auth::user()->id;
+                }
+
                 $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
 
-                return $controller->destroy($request, $targetId);
+                return $controller->destroy(app(Request::class), $targetId);
             })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
         }
     }

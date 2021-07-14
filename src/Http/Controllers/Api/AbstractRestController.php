@@ -327,7 +327,7 @@ abstract class AbstractRestController extends Controller
 
     public function callAction($method, $parameters)
     {
-        $injectedParameters = event('me-injection-check', [$parameters]);
+        $injectedParameters = last(event('me-injection-check', [$parameters]));
 
         if (count($injectedParameters) > 0) {
             $parameters = $injectedParameters;

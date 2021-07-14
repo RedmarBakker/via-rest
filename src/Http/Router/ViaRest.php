@@ -236,7 +236,7 @@ class ViaRest
      * */
     protected static function configureMeRoute(string $url, MeRoute $route): void
     {
-        Route::group(['me' => true], function () use ($url, $route) {
+        Route::group(['middleware' => 'me-injection'], function () use ($url, $route) {
             switch (true) {
                 case $route instanceof ModelRoute:
                     self::configureModelRoute($url, $route);

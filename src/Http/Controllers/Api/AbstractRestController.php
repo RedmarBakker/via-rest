@@ -2,10 +2,14 @@
 
 namespace ViaRest\Http\Controllers\Api;
 
+use App\Events\BeforeControllerDispatch;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller;
+use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Event;
+use ViaRest\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Router\ViaRest;
 use ViaRest\Models\DynamicModelInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -61,7 +65,9 @@ abstract class AbstractRestController extends Controller
      * */
     public function fetchAll(Request $request)
     {
-        $fetchAllRequest = call_user_func([self::getModelClass(), 'instanceFetchAllRequest']);
+        $fetchAllRequest = call_user_func([
+            $this::getModelClass(),
+            'instanceFetchAllRequest']);
 
         if (!$fetchAllRequest->authorize()) {
             return $this->forbidden();
@@ -94,7 +100,7 @@ abstract class AbstractRestController extends Controller
             $id = Auth::user()->id;
         }
 
-        $fetchRequest = call_user_func([self::getModelClass(), 'instanceFetchRequest']);
+        $fetchRequest = call_user_func([$this::getModelClass(), 'instanceFetchRequest']);
 
         if (!$fetchRequest->authorize()) {
             return $this->forbidden();
@@ -123,7 +129,7 @@ abstract class AbstractRestController extends Controller
      * */
     public function create(Request $request)
     {
-        $createRequest = call_user_func([self::getModelClass(), 'instanceCreateRequest']);
+        $createRequest = call_user_func([$this::getModelClass(), 'instanceCreateRequest']);
 
         if (!$createRequest->authorize()) {
             return $this->forbidden();
@@ -156,7 +162,7 @@ abstract class AbstractRestController extends Controller
             $id = Auth::user()->id;
         }
 
-        $updateRequest = call_user_func([self::getModelClass(), 'instanceUpdateRequest']);
+        $updateRequest = call_user_func([$this::getModelClass(), 'instanceUpdateRequest']);
 
         if (!$updateRequest->authorize()) {
             return $this->forbidden();
@@ -190,7 +196,7 @@ abstract class AbstractRestController extends Controller
             $id = Auth::user()->id;
         }
 
-        $destroyRequest = call_user_func([self::getModelClass(), 'instanceDestroyRequest']);
+        $destroyRequest = call_user_func([$this::getModelClass(), 'instanceDestroyRequest']);
 
         if (!$destroyRequest->authorize()) {
             return $this->forbidden();
@@ -220,7 +226,7 @@ abstract class AbstractRestController extends Controller
     public function doCreate(array $input): JsonResponse
     {
         return ok([
-            'data' => call_user_func([self::getModelClass(), 'create'], $input)->refresh()
+            'data' => call_user_func([$this::getModelClass(), 'create'], $input)->refresh()
         ]);
     }
 
@@ -233,7 +239,7 @@ abstract class AbstractRestController extends Controller
     public function doFetch($id, array $input): JsonResponse
     {
         $item = call_user_func(
-            [self::getModelClass(), 'with'],
+            [$this::getModelClass(), 'with'],
             $input['relations'] ?? []
         )->find($id);
 
@@ -255,7 +261,7 @@ abstract class AbstractRestController extends Controller
     public function doFetchAll(array $input): JsonResponse
     {
         $result = call_user_func(
-            [self::getModelClass(), 'with'],
+            [$this::getModelClass(), 'with'],
             $input['relations'] ?? []);
 
         $orderDirection = $input['order_direction'] ?? self::ORDER_DIRECTION;
@@ -282,7 +288,7 @@ abstract class AbstractRestController extends Controller
     public function doUpdate($id, array $input): JsonResponse
     {
         /** @var $item Model */
-        $item = call_user_func([self::getModelClass(), 'find'], $id);
+        $item = call_user_func([$this::getModelClass(), 'find'], $id);
 
         if ($item == null) {
             return $this->notFound();
@@ -306,7 +312,7 @@ abstract class AbstractRestController extends Controller
     public function doDestroy($id, array $input): JsonResponse
     {
         /** @var $item Model */
-        $item = call_user_func([self::getModelClass(), 'find'], $id);
+        $item = call_user_func([$this::getModelClass(), 'find'], $id);
 
         if ($item == null) {
             return $this->notFound();
@@ -321,7 +327,13 @@ abstract class AbstractRestController extends Controller
 
     public function callAction($method, $parameters)
     {
-        ViaRest::
+        $injectedParameters = event('me-injection-check', [$parameters]);
+
+        if (count($injectedParameters) > 0) {
+            $parameters = $injectedParameters;
+        }
+
+        return $this->{$method}(...array_values($parameters));
     }
 
 }

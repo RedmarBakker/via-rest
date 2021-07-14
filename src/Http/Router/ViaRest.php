@@ -171,7 +171,6 @@ class ViaRest
         foreach ($route->getCustoms() as $endpoint => $config) {
             $method = Request::METHOD_GET;
             $target = null;
-            $idIntegration = false;
 
             if (! is_array($config)) {
                 throw new ConfigurationException(sprintf(
@@ -191,6 +190,8 @@ class ViaRest
                 ])],
                 'target' => ['required'],
                 'id_integration' => ['bool'],
+                'endpoint' => ['string'],
+                'endpoint_where' => ['array']
             ]);
 
             try {
@@ -205,32 +206,42 @@ class ViaRest
             $method         = isset($input['method']) ? $input['method'] : $method;
             $target         = $input['target'] ?: $target;
             $idIntegration  = isset($input['id_integration']) ? $input['id_integration'] : $idIntegration;
+            $endpoint       = isset($input['endpoint']) ? $input['endpoint'] : $endpoint;
+            $endpointWhere  = isset($input['endpoint_where']) ? $input['endpoint_where'] : [];
 
             if ($idIntegration == true) {
                 switch (strtoupper($method)) {
                     case Request::METHOD_GET:
-                        Route::get($url . '/{id}/' . $endpoint, $controllerName . '@' . $target)
-                            ->where('id', self::$idValidation);
+                        Route::get($url . '/{root_id}/' . $endpoint, $controllerName . '@' . $target)
+                            ->where(array_merge(['root_id' => self::$idValidation], $endpointWhere));
+                        break;
                     case Request::METHOD_PUT:
-                        Route::put($url . '/{id}/' . $endpoint, $controllerName . '@' . $target)
-                            ->where('id', self::$idValidation);
+                        Route::put($url . '/{root_id}/' . $endpoint, $controllerName . '@' . $target)
+                            ->where(array_merge(['root_id' => self::$idValidation], $endpointWhere));
+                        break;
                     case Request::METHOD_POST:
-                        Route::post($url . '/{id}/' . $endpoint, $controllerName . '@' . $target)
-                            ->where('id', self::$idValidation);
+                        Route::post($url . '/{root_id}/' . $endpoint, $controllerName . '@' . $target)
+                            ->where(array_merge(['root_id' => self::$idValidation], $endpointWhere));
+                        break;
                     case Request::METHOD_DELETE:
-                        Route::delete($url . '/{id}/' . $endpoint, $controllerName . '@' . $target)
-                            ->where('id', self::$idValidation);
+                        Route::delete($url . '/{root_id}/' . $endpoint, $controllerName . '@' . $target)
+                            ->where(array_merge(['root_id' => self::$idValidation], $endpointWhere));
+                        break;
                 }
             } else {
                 switch (strtoupper($method)) {
                     case Request::METHOD_GET:
-                        Route::get($url . '/' . $endpoint, $controllerName . '@' . $action);
+                        Route::get($url . '/' . $endpoint, $controllerName . '@' . $target);
+                        break;
                     case Request::METHOD_PUT:
-                        Route::put($url . '/' . $endpoint, $controllerName . '@' . $action);
+                        Route::put($url . '/' . $endpoint, $controllerName . '@' . $target);
+                        break;
                     case Request::METHOD_POST:
-                        Route::post($url . '/' . $endpoint, $controllerName . '@' . $action);
+                        Route::post($url . '/' . $endpoint, $controllerName . '@' . $target);
+                        break;
                     case Request::METHOD_DELETE:
-                        Route::delete($url . '/' . $endpoint, $controllerName . '@' . $action);
+                        Route::delete($url . '/' . $endpoint, $controllerName . '@' . $target);
+                        break;
                 }
             }
         }
@@ -312,6 +323,7 @@ class ViaRest
                     $rootId = Auth::user()->id;
                 }
 
+                $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
                 $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
 
                 return $controller->fetchAll(app(Request::class));
@@ -325,6 +337,7 @@ class ViaRest
                         $rootId = Auth::user()->id;
                     }
 
+                    $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
                     $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
 
                     return $controller->create(app(Request::class));
@@ -340,6 +353,7 @@ class ViaRest
                         $rootId = Auth::user()->id;
                     }
 
+                    $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
                     $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
 
                     return $controller->attach(app(Request::class), $targetId);
@@ -354,6 +368,7 @@ class ViaRest
                     $rootId = Auth::user()->id;
                 }
 
+                $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
                 $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
 
                 return $controller->destroy(app(Request::class), $targetId);

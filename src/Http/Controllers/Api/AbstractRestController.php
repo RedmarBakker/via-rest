@@ -329,7 +329,7 @@ abstract class AbstractRestController extends Controller
     {
         $injectedParameters = last(event('me-injection-check', [$parameters]));
 
-        if (count($injectedParameters) > 0) {
+        if (is_array($injectedParameters) && count($injectedParameters) > 0) {
             $parameters = $injectedParameters;
         }
 

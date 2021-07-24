@@ -1,6 +1,6 @@
 <?php
 
-namespace ViaRest\Exceptions\Api;
+namespace ViaRest\Http\Exceptions\Api;
 
 use Exception;
 

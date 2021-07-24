@@ -9,7 +9,7 @@ use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Event;
-use ViaRest\Exceptions\Api\ConfigurationException;
+use ViaRest\Http\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Router\ViaRest;
 use ViaRest\Models\DynamicModelInterface;
 use Illuminate\Database\Eloquent\Model;

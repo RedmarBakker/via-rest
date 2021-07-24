@@ -2,7 +2,7 @@
 
 namespace ViaRest\Models;
 
-use App\Exceptions\Api\ConfigurationException;
+use App\Http\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Requests\Api\CrudRequestInterface;
 use ViaRest\Http\Requests\Api\DefaultRequest;
 use Illuminate\Support\Str;

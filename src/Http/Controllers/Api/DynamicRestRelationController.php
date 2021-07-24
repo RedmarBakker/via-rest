@@ -6,7 +6,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller;
-use ViaRest\Exceptions\Api\ConfigurationException;
+use ViaRest\Http\Exceptions\Api\ConfigurationException;
 use ViaRest\Models\DynamicModelInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

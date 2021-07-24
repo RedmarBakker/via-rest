@@ -10,7 +10,7 @@ namespace ViaRest\Http\Router;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
-use ViaRest\Exceptions\Api\ConfigurationException;
+use ViaRest\Http\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Controllers\Api\DynamicRestController;
 use ViaRest\Http\Controllers\Api\DynamicRestMeController;
 use ViaRest\Http\Controllers\Api\DynamicRestRelationController;

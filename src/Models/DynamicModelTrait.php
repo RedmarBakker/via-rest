@@ -94,7 +94,7 @@ trait DynamicModelTrait
                 return new DefaultRequest();
             }
         } catch (\ReflectionException $e) {
-            throw new ConfigurationException(printf(
+            throw new ConfigurationException(sprintf(
                 'Something went wrong while trying to predict the ' .
                 'namespace of a model.'
             ));
@@ -103,7 +103,7 @@ trait DynamicModelTrait
         $model = new $className();
 
         if (! $model instanceof CrudRequestInterface) {
-            throw new ConfigurationException(printf(
+            throw new ConfigurationException(sprintf(
                 'Configured ViaRest model needs to be an instance of %s',
                 CrudRequestInterface::class
             ));

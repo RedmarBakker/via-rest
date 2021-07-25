@@ -77,16 +77,16 @@ trait DynamicModelTrait
         try {
             $refl = new \ReflectionClass(get_called_class());
             $module = explode('\\', $refl->getNamespaceName())[0];
-            $modelName = $refl->getShortName();
+            $requestName = Str::plural($refl->getShortName());
 
             if ($version != null) {
-                $module = $module . '\\' . $version;
+                $requestName = $version . '\\' . $requestName;
             }
 
             $className = sprintf(
                 self::$base,
                 $module,
-                Str::plural($modelName),
+                $requestName,
                 $endpoint
             );
 

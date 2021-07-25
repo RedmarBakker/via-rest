@@ -80,7 +80,7 @@ trait DynamicModelTrait
             $modelName = $refl->getShortName();
 
             if ($version != null) {
-                $endpoint = $version . '\\' . $endpoint;
+                $module = $module . '\\' . $version;
             }
 
             $className = sprintf(
@@ -100,16 +100,16 @@ trait DynamicModelTrait
             ));
         }
 
-        $model = new $className();
+        $request = new $className();
 
-        if (! $model instanceof CrudRequestInterface) {
+        if (! $request instanceof CrudRequestInterface) {
             throw new ConfigurationException(sprintf(
                 'Configured ViaRest model needs to be an instance of %s',
                 CrudRequestInterface::class
             ));
         }
 
-        return $model;
+        return $request;
     }
 
 }

@@ -2,16 +2,12 @@
 
 namespace ViaRest\Http\Controllers\Api;
 
-use App\Events\BeforeControllerDispatch;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Event;
-use ViaRest\Http\Exceptions\Api\ConfigurationException;
-use ViaRest\Http\Router\ViaRest;
-use ViaRest\Models\DynamicModelInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;

@@ -44,6 +44,13 @@ abstract class AbstractRestController extends Controller
      * */
     private $cacheProvider;
 
+    /**
+     * Version variable, used for fitting requirements by version
+     *
+     * @var string
+     * */
+    protected $version = null;
+
 
     /**
      * Constructor
@@ -63,7 +70,8 @@ abstract class AbstractRestController extends Controller
     {
         $fetchAllRequest = call_user_func([
             $this::getModelClass(),
-            'instanceFetchAllRequest']);
+            'instanceFetchAllRequest'
+        ], $this->version);
 
         if (!$fetchAllRequest->authorize()) {
             return $this->forbidden();
@@ -96,7 +104,10 @@ abstract class AbstractRestController extends Controller
             $id = Auth::user()->id;
         }
 
-        $fetchRequest = call_user_func([$this::getModelClass(), 'instanceFetchRequest']);
+        $fetchRequest = call_user_func([
+            $this::getModelClass(),
+            'instanceFetchRequest'
+        ], $this->version);
 
         if (!$fetchRequest->authorize()) {
             return $this->forbidden();
@@ -125,7 +136,10 @@ abstract class AbstractRestController extends Controller
      * */
     public function create(Request $request)
     {
-        $createRequest = call_user_func([$this::getModelClass(), 'instanceCreateRequest']);
+        $createRequest = call_user_func([
+            $this::getModelClass(),
+            'instanceCreateRequest'
+        ], $this->version);
 
         if (!$createRequest->authorize()) {
             return $this->forbidden();
@@ -158,7 +172,10 @@ abstract class AbstractRestController extends Controller
             $id = Auth::user()->id;
         }
 
-        $updateRequest = call_user_func([$this::getModelClass(), 'instanceUpdateRequest']);
+        $updateRequest = call_user_func([
+            $this::getModelClass(),
+            'instanceUpdateRequest'
+        ], $this->version);
 
         if (!$updateRequest->authorize()) {
             return $this->forbidden();
@@ -192,7 +209,10 @@ abstract class AbstractRestController extends Controller
             $id = Auth::user()->id;
         }
 
-        $destroyRequest = call_user_func([$this::getModelClass(), 'instanceDestroyRequest']);
+        $destroyRequest = call_user_func([
+            $this::getModelClass(),
+            'instanceDestroyRequest'
+        ], $this->version);
 
         if (!$destroyRequest->authorize()) {
             return $this->forbidden();
@@ -222,7 +242,10 @@ abstract class AbstractRestController extends Controller
     public function doCreate(array $input): JsonResponse
     {
         return ok([
-            'data' => call_user_func([$this::getModelClass(), 'create'], $input)->refresh()
+            'data' => call_user_func([
+                $this::getModelClass(),
+                'create'
+            ], $input)->refresh()
         ]);
     }
 
@@ -266,7 +289,10 @@ abstract class AbstractRestController extends Controller
                 'data' => $result->inRandomOrder()->get()
             ]);
         } else {
-            $result->orderBy($input['order_identifier'] ?? self::ORDER_IDENTIFIER, $orderDirection);
+            $result->orderBy(
+                $input['order_identifier'] ?? self::ORDER_IDENTIFIER,
+                $orderDirection
+            );
         }
 
         return ok(

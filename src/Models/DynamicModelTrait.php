@@ -2,7 +2,7 @@
 
 namespace ViaRest\Models;
 
-use App\Http\Exceptions\Api\ConfigurationException;
+use ViaRest\Http\Exceptions\Api\ConfigurationException;
 use ViaRest\Http\Requests\Api\CrudRequestInterface;
 use ViaRest\Http\Requests\Api\DefaultRequest;
 use Illuminate\Support\Str;
@@ -15,72 +15,88 @@ trait DynamicModelTrait
 
 
     /**
+     * @param null $version
      * @return CrudRequestInterface
      * @throws ConfigurationException
-     * */
-    public static function instanceCreateRequest(): CrudRequestInterface
+     */
+    public static function instanceCreateRequest($version = null): CrudRequestInterface
     {
-        return self::instanceRequest('CreateRequest');
+        return self::instanceRequest('CreateRequest', $version);
     }
 
     /**
+     * @param null $version
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    public static function instanceUpdateRequest(): CrudRequestInterface
+    public static function instanceUpdateRequest($version = null): CrudRequestInterface
     {
-        return self::instanceRequest('UpdateRequest');
+        return self::instanceRequest('UpdateRequest', $version);
     }
 
     /**
+     * @param null $version
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    public static function instanceFetchRequest(): CrudRequestInterface
+    public static function instanceFetchRequest($version = null): CrudRequestInterface
     {
-        return self::instanceRequest('FetchRequest');
+        return self::instanceRequest('FetchRequest', $version);
     }
 
     /**
-     * @return CrudRequestInterface
+     * @param null $version
+     * @return FetchAllRequest
      * @throws ConfigurationException
      * */
-    public static function instanceFetchAllRequest(): FetchAllRequest
+    public static function instanceFetchAllRequest($version = null): FetchAllRequest
     {
-        $request = self::instanceRequest('FetchAllRequest');
+        $request = self::instanceRequest('FetchAllRequest', $version);
 
         return $request instanceof FetchAllRequest ? $request : new FetchAllRequest();
     }
 
     /**
+     * @param null $version
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    public static function instanceDestroyRequest(): CrudRequestInterface
+    public static function instanceDestroyRequest($version = null): CrudRequestInterface
     {
-        return self::instanceRequest('DestroyRequest');
+        return self::instanceRequest('DestroyRequest', $version);
     }
 
     /**
+     * @param $version
      * @param $endpoint string
      * @return CrudRequestInterface
      * @throws ConfigurationException
      * */
-    private static function instanceRequest(string $endpoint): CrudRequestInterface
+    private static function instanceRequest(string $endpoint, $version): CrudRequestInterface
     {
         try {
             $refl = new \ReflectionClass(get_called_class());
             $module = explode('\\', $refl->getNamespaceName())[0];
             $modelName = $refl->getShortName();
 
-            $className = sprintf(self::$base, $module, Str::plural($modelName), $endpoint);
+            if ($version != null) {
+                $endpoint = $version . '\\' . $endpoint;
+            }
+
+            $className = sprintf(
+                self::$base,
+                $module,
+                Str::plural($modelName),
+                $endpoint
+            );
 
             if (!class_exists($className)) {
                 return new DefaultRequest();
             }
         } catch (\ReflectionException $e) {
             throw new ConfigurationException(printf(
-                'Something went wrong while trying to predict the namespace of a model.'
+                'Something went wrong while trying to predict the ' .
+                'namespace of a model.'
             ));
         }
 

@@ -6,6 +6,8 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller;
+use ViaRest\Events\RelationAttachedEvent;
+use ViaRest\Events\RelationDetachedEvent;
 use ViaRest\Http\Exceptions\Api\ConfigurationException;
 use ViaRest\Models\DynamicModelInterface;
 use Illuminate\Http\JsonResponse;
@@ -59,13 +61,15 @@ class DynamicRestRelationController extends AbstractRestController
                 $this->rootClass = $rootElement;
             } else {
                 throw new ConfigurationException(sprintf(
-                    'Model class could not be fetched. Are you sure you followed the docs? See the docs: ' .
+                    'Model class could not be fetched. Are you sure you ' .
+                    'followed the docs? See the docs: ' .
                     'https://github.com/RedmarBakker/via-rest'
                 ));
             }
         } catch (\ReflectionException $e) {
             throw new ConfigurationException(sprintf(
-                'Model class could not be fetched. Check your route target. See the docs: ' .
+                'Model class could not be fetched. Check your route ' .
+                'target. See the docs: ' .
                 'https://github.com/RedmarBakker/via-rest'
             ));
         }
@@ -83,15 +87,17 @@ class DynamicRestRelationController extends AbstractRestController
      * @throws ConfigurationException
      * @return boolean
      */
-    public function checkRelations()
+    private function checkRelations()
     {
         try {
             $rootReflection = new \ReflectionClass($this->rootClass);
 
             if (! $rootReflection->hasMethod($this->relation)) {
                 throw new ConfigurationException(sprintf(
-                    'Model %s could not be configured as a relation route, because relation %s was not found. See the docs: ' .
-                    'https://github.com/RedmarBakker/via-rest#configuring-api-routes-with-a-relation',
+                    'Model %s could not be configured as a relation ' .
+                    'route, because relation %s was not found. See the docs: ' .
+                    'https://github.com/RedmarBakker/via-rest#configuring-api' .
+                    '-routes-with-a-relation',
                     $this->rootClass,
                     $this->relation
                 ));
@@ -102,8 +108,10 @@ class DynamicRestRelationController extends AbstractRestController
 
             if (! $return instanceof Relation) {
                 throw new ConfigurationException(sprintf(
-                    'Model %s could not be configured as a relation route, because relation %s was of type %s. See the docs: ' .
-                    'https://github.com/RedmarBakker/via-rest#configuring-api-routes-with-a-relation',
+                    'Model %s could not be configured as a relation ' .
+                    'route, because relation %s was of type %s. See the docs: ' .
+                    'https://github.com/RedmarBakker/via-rest#configuring-' .
+                    'api-routes-with-a-relation',
                     $this->rootClass,
                     $this->relation,
                     Relation::class
@@ -111,8 +119,9 @@ class DynamicRestRelationController extends AbstractRestController
             }
         } catch (\ReflectionException $e) {
             throw new ConfigurationException(sprintf(
-                'Model %s could not be configured as a relation route. See the docs: ' .
-                'https://github.com/RedmarBakker/via-rest#configuring-api-routes-with-a-relation',
+                'Model %s could not be configured as a relation route. ' .
+                'See the docs: https://github.com/RedmarBakker/via-rest' .
+                '#configuring-api-routes-with-a-relation',
                 $this->rootClass
             ));
         }
@@ -129,13 +138,19 @@ class DynamicRestRelationController extends AbstractRestController
     public function create(Request $request): JsonResponse
     {
         try {
-            $createRequest = call_user_func([$this->rootClass, 'instanceCreateRequest']);
+            $createRequest = call_user_func([
+                $this->rootClass,
+                'instanceCreateRequest'
+            ]);
 
             if (!$createRequest->authorize()) {
                 return $this->forbidden();
             }
 
-            $validator = Validator::make($request->all(), $createRequest->rules());
+            $validator = Validator::make(
+                $request->all(),
+                $createRequest->rules()
+            );
 
             try {
                 $input = $validator->validate();
@@ -147,8 +162,16 @@ class DynamicRestRelationController extends AbstractRestController
             $root = call_user_func([$this->rootClass, 'find'], $this->rootId);
             $root->{$this->relation}()->save($target);
 
+            event(
+                new RelationAttachedEvent(
+                    $root->{$this->relation}(),
+                    $root,
+                    $target
+                )
+            );
+
             return ok([
-                Str::singular($this->relation) => $target
+                'data' => $target
             ]);
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);
@@ -181,8 +204,21 @@ class DynamicRestRelationController extends AbstractRestController
                 ], 400);
             }
 
+            $target = call_user_func(
+                [$this->relationClass, 'find'],
+                $id
+            );
+
+            event(
+                new RelationAttachedEvent(
+                    $root->{$this->relation}(),
+                    $root,
+                    $target
+                )
+            );
+
             return ok([
-                Str::singular($this->relation) => call_user_func([$this->relationClass, 'find'], $id)
+                'data' => $target
             ]);
         } catch (\Exception $e) {
             return error_json_response($e->getMessage(), $e->getTrace(), 500);
@@ -209,13 +245,19 @@ class DynamicRestRelationController extends AbstractRestController
      */
     public function fetchAll(Request $request): JsonResponse
     {
-        $fetchAllRequest = call_user_func([$this->rootClass, 'instanceFetchAllRequest']);
+        $fetchAllRequest = call_user_func([
+            $this->rootClass,
+            'instanceFetchAllRequest'
+        ]);
 
         if (!$fetchAllRequest->authorize()) {
             return $this->forbidden();
         }
 
-        $validator = Validator::make($request->all(), $fetchAllRequest->rules());
+        $validator = Validator::make(
+            $request->all(),
+            $fetchAllRequest->rules()
+        );
 
         try {
             $input = $validator->validate();
@@ -235,7 +277,10 @@ class DynamicRestRelationController extends AbstractRestController
                     'data' => $result->inRandomOrder()->get()
                 ]);
             } else {
-                $result->orderBy($input['order_identifier'] ?? self::ORDER_IDENTIFIER, $orderDirection);
+                $result->orderBy(
+                    $input['order_identifier'] ?? self::ORDER_IDENTIFIER,
+                    $orderDirection
+                );
             }
 
             return ok(
@@ -243,7 +288,11 @@ class DynamicRestRelationController extends AbstractRestController
             );
 
         } catch (\Exception $e) {
-            return error_json_response('Something went wrong. Relation not fully configured.', [$e->getMessage()], 500);
+            return error_json_response(
+                'Something went wrong. Relation not fully configured.',
+                [$e->getMessage()],
+                500
+            );
         }
     }
 
@@ -275,7 +324,53 @@ class DynamicRestRelationController extends AbstractRestController
                 return $this->notFound();
             }
 
+            $root->{$this->relation}()->delete($id);
+
+            event(
+                new RelationDetachedEvent(
+                    $root->{$this->relation}(),
+                    $root,
+                    call_user_func(
+                        [$this->relationClass, 'find'],
+                        $id
+                    )
+                )
+            );
+
+            return ok();
+        } catch (\Exception $e) {
+            return error_json_response($e->getMessage(), $e->getTrace(), 500);
+        }
+    }
+
+    /**
+     * Detach a model
+     *
+     * @param $id int
+     * @param $request Request
+     * @return JsonResponse
+     */
+    public function detach(Request $request, $id): JsonResponse
+    {
+        try {
+            $root = call_user_func([$this->rootClass, 'find'], $this->rootId);
+
+            if (! $root->{$this->relation}->contains($id)) {
+                return $this->notFound();
+            }
+
             $root->{$this->relation}()->detach($id);
+
+            event(
+                new RelationDetachedEvent(
+                    $root->{$this->relation}(),
+                    $root,
+                    call_user_func(
+                        [$this->relationClass, 'find'],
+                        $id
+                    )
+                )
+            );
 
             return ok();
         } catch (\Exception $e) {

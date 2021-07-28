@@ -285,15 +285,17 @@ class ViaRest
     protected static function configureRelationRoutes($url, RouteInterface $route, $idIntegration = true): void
     {
         foreach ($route->getRelations() as $relation => $relationOptions) {
+            $relationClass = '';
             $create = false;
             $attach = false;
-            $relationClass = '';
+            $softDelete = true;
 
             if (is_array($relationOptions)) {
                 $validator = Validator::make($relationOptions, [
                     'relation_class' => ['required'],
                     'create' => ['bool'],
                     'attach' => ['bool'],
+                    'soft_delete' => ['bool'],
                 ]);
 
                 try {
@@ -305,9 +307,10 @@ class ViaRest
                     ));
                 }
 
+                $relationClass  = $input['relation_class'] ?: $relationClass;
                 $create         = isset($input['create']) ? $input['create'] : $create;
                 $attach         = isset($input['attach']) ? $input['attach'] : $attach;
-                $relationClass  = $input['relation_class'] ?: $relationClass;
+                $softDelete     = isset($input['soft_delete']) ? $input['soft_delete'] : $softDelete;
             } else {
                 $relationClass = $relationOptions;
             }
@@ -360,19 +363,35 @@ class ViaRest
                 })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
             }
 
-            Route::delete($url . '/' . $relation . '/{target_id}', function (...$args) use ($route, $relation, $relationClass) {
-                if (count($args) == 2) {
-                    list($targetId, $rootId) = $args;
-                } else {
-                    list($targetId) = $args;
-                    $rootId = Auth::user()->id;
-                }
+            if ($softDelete == true) {
+                Route::delete($url . '/' . $relation . '/{target_id}', function (...$args) use ($route, $relation, $relationClass) {
+                    if (count($args) == 2) {
+                        list($targetId, $rootId) = $args;
+                    } else {
+                        list($targetId) = $args;
+                        $rootId = Auth::user()->id;
+                    }
 
-                $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
-                $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
+                    $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
+                    $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
 
-                return $controller->destroy(app(Request::class), $targetId);
-            })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
+                    return $controller->detach(app(Request::class), $targetId);
+                })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
+            } else {
+                Route::delete($url . '/' . $relation . '/{target_id}', function (...$args) use ($route, $relation, $relationClass) {
+                    if (count($args) == 2) {
+                        list($targetId, $rootId) = $args;
+                    } else {
+                        list($targetId) = $args;
+                        $rootId = Auth::user()->id;
+                    }
+
+                    $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
+                    $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
+
+                    return $controller->destroy(app(Request::class), $targetId);
+                })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
+            }
         }
     }
 

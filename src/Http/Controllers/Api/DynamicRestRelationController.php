@@ -164,7 +164,7 @@ class DynamicRestRelationController extends AbstractRestController
 
             event(
                 new RelationAttachedEvent(
-                    $root->{$this->relation}(),
+                    $this->relation,
                     $root,
                     $target
                 )
@@ -211,7 +211,7 @@ class DynamicRestRelationController extends AbstractRestController
 
             event(
                 new RelationAttachedEvent(
-                    $root->{$this->relation}(),
+                    $this->relation,
                     $root,
                     $target
                 )
@@ -328,7 +328,7 @@ class DynamicRestRelationController extends AbstractRestController
 
             event(
                 new RelationDetachedEvent(
-                    $root->{$this->relation}(),
+                    $this->relation,
                     $root,
                     call_user_func(
                         [$this->relationClass, 'find'],
@@ -363,7 +363,7 @@ class DynamicRestRelationController extends AbstractRestController
 
             event(
                 new RelationDetachedEvent(
-                    $root->{$this->relation}(),
+                    $this->relation,
                     $root,
                     call_user_func(
                         [$this->relationClass, 'find'],

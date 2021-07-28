@@ -15,30 +15,30 @@ class RelationAttachedEvent
 
 
     /**
-     * @var Relation
+     * @var string
      * */
-    protected $relation;
+    public $relation;
 
     /**
      * @var Model
      * */
-    protected $root;
+    public $root;
 
     /**
      * @var Model
      * */
-    protected $target;
+    public $target;
 
 
     /**
      * Create a new event instance.
      *
-     * @param Relation $relation
+     * @param string $relation
      * @param Model $root
      * @param Model $target
      * @return void
      */
-    public function __construct(Relation $relation, Model $root, Model $target)
+    public function __construct(string $relation, Model $root, Model $target)
     {
         $this->relation = $relation;
         $this->root = $root;

@@ -17,7 +17,7 @@ class RelationDetachedEvent
     /**
      * @var string
      * */
-    public $relation;
+    public $relationName;
 
     /**
      * @var Model
@@ -33,14 +33,14 @@ class RelationDetachedEvent
     /**
      * Create a new event instance.
      *
-     * @param string $relation
+     * @param string $relationName
      * @param Model $root
      * @param Model $target
      * @return void
      */
-    public function __construct(string $relation, Model $root, Model $target)
+    public function __construct(string $relationName, Model $root, Model $target)
     {
-        $this->relation = $relation;
+        $this->relationName = $relationName;
         $this->root = $root;
         $this->target = $target;
     }

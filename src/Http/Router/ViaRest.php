@@ -289,6 +289,7 @@ class ViaRest
             $create = false;
             $attach = false;
             $softDelete = true;
+            $bidirectional = false;
 
             if (is_array($relationOptions)) {
                 $validator = Validator::make($relationOptions, [
@@ -296,6 +297,7 @@ class ViaRest
                     'create' => ['bool'],
                     'attach' => ['bool'],
                     'soft_delete' => ['bool'],
+                    'bidirectional' => ['bool'],
                 ]);
 
                 try {
@@ -311,6 +313,7 @@ class ViaRest
                 $create         = isset($input['create']) ? $input['create'] : $create;
                 $attach         = isset($input['attach']) ? $input['attach'] : $attach;
                 $softDelete     = isset($input['soft_delete']) ? $input['soft_delete'] : $softDelete;
+                $bidirectional  = isset($input['bidirectional']) ? $input['bidirectional'] : $bidirectional;
             } else {
                 $relationClass = $relationOptions;
             }

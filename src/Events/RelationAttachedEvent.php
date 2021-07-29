@@ -6,12 +6,12 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Eloquent\Relations\Concerns\InteractsWithPivotTable;
 
 class RelationAttachedEvent
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, InteractsWithSockets;
 
 
     /**
@@ -33,14 +33,19 @@ class RelationAttachedEvent
     /**
      * Create a new event instance.
      *
-     * @param string $relationName
+     * @param Relation $relation
      * @param Model $root
      * @param Model $target
      * @return void
      */
-    public function __construct(string $relationName, Model $root, Model $target)
+    public function __construct(Relation $relation, Model $root, Model $target)
     {
-        $this->relationName = $relationName;
+        $table = false;
+        if (in_array(InteractsWithPivotTable::class, class_uses($relation))) {
+            $table = $relation->getTable();
+        }
+
+        $this->table = $table;
         $this->root = $root;
         $this->target = $target;
     }

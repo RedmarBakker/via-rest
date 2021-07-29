@@ -17,7 +17,7 @@ class RelationDetachedEvent
     /**
      * @var string
      * */
-    public $relationName;
+    public $table;
 
     /**
      * @var Model
@@ -33,14 +33,19 @@ class RelationDetachedEvent
     /**
      * Create a new event instance.
      *
-     * @param string $relationName
+     * @param Relation $relation
      * @param Model $root
      * @param Model $target
      * @return void
      */
-    public function __construct(string $relationName, Model $root, Model $target)
+    public function __construct(Relation $relation, Model $root, Model $target)
     {
-        $this->relationName = $relationName;
+        $table = false;
+        if (in_array(InteractsWithPivotTable::class, class_uses($relation))) {
+            $table = $relation->getTable();
+        }
+
+        $this->table = $table;
         $this->root = $root;
         $this->target = $target;
     }

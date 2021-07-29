@@ -17,7 +17,7 @@ class RelationAttachedEvent
     /**
      * @var string
      * */
-    public $relationName;
+    public $table;
 
     /**
      * @var Model

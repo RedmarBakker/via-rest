@@ -39,6 +39,13 @@ class ViaRest
      * */
     protected static $middleware = '';
 
+    /**
+     * All route permissions
+     *
+     * @var array
+     * */
+    protected static $routePermissions = [];
+
 
     /**
      * Set Id Validation
@@ -53,11 +60,21 @@ class ViaRest
     /**
      * Configure a middleware for the root route
      *
-     * @param $middleware string
+     * @param $middleware string|array
      * */
-    public static function setMiddleware(string $middleware)
+    public static function setMiddleware($middleware)
     {
         self::$middleware = $middleware;
+    }
+
+    /**
+     * Get all used route permissions
+     *
+     * @return array
+     * */
+    public static function getRoutePermissions(): array
+    {
+        return self::$routePermissions;
     }
 
     /**
@@ -107,38 +124,63 @@ class ViaRest
     {
         $urlPostfix = '';
         if ($idIntegration == true) {
-            $urlPostfix = $url .= '/{id}';
+            $urlPostfix = '/{id}';
         }
 
         Route::get($url, function (DefaultRequest $request) use ($route) {
+            if (! Auth::user()->tokenCan($route->getPermission() . ':read')) {
+                return forbidden();
+            }
+
             $controller = new DynamicRestController($route->getTarget());
 
             return $controller->fetchAll($request);
         });
 
         Route::get($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
+            if (! Auth::user()->tokenCan($route->getPermission() . ':read')) {
+                return forbidden();
+            }
+
             $controller = new DynamicRestController($route->getTarget());
 
             return $controller->fetch($request, $id);
         })->where('id', self::$idValidation);
 
         Route::post($url, function (DefaultRequest $request) use ($route) {
+            if (! Auth::user()->tokenCan($route->getPermission() . ':create')) {
+                return forbidden();
+            }
+
             $controller = new DynamicRestController($route->getTarget());
 
             return $controller->create($request);
         });
 
         Route::put($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
+            if (! Auth::user()->tokenCan($route->getPermission() . ':update')) {
+                return forbidden();
+            }
+
             $controller = new DynamicRestController($route->getTarget());
 
             return $controller->update($request, $id);
         })->where('id', self::$idValidation);
 
         Route::delete($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
+            if (! Auth::user()->tokenCan($route->getPermission() . ':delete')) {
+                return forbidden();
+            }
+
             $controller = new DynamicRestController($route->getTarget());
 
             return $controller->destroy($request, $id);
         })->where('id', self::$idValidation);
+
+        self::$routePermissions[] = $route->getPermission() . ':create';
+        self::$routePermissions[] = $route->getPermission() . ':read';
+        self::$routePermissions[] = $route->getPermission() . ':update';
+        self::$routePermissions[] = $route->getPermission() . ':delete';
     }
 
     /**

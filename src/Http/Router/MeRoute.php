@@ -40,9 +40,10 @@ class MeRoute implements RouteInterface
     /**
      * @param string $target
      */
-    public function setTarget(string $target): void
+    public function setTarget(string $target): self
     {
         $this->route->setTarget($target);
+        return $this;
     }
 
     /**
@@ -56,9 +57,10 @@ class MeRoute implements RouteInterface
     /**
      * @param array $relations
      */
-    public function setRelations(array $relations): void
+    public function setRelations(array $relations): self
     {
         $this->route->setRelations($relations);
+        return $this;
     }
 
     /**
@@ -69,6 +71,23 @@ class MeRoute implements RouteInterface
     public function getLinkedRoute(): RouteInterface
     {
         return $this->route;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPermission(): string
+    {
+        return $this->route->getPermission();
+    }
+
+    /**
+     * @param string $permission
+     */
+    public function setPermission(string $permission): self
+    {
+        $this->route->setPermission($permission);
+        return $this;
     }
 
 }

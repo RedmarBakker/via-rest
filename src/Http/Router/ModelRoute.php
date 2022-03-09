@@ -20,7 +20,12 @@ class ModelRoute implements RouteInterface
     /**
      * @var array
      * */
-    private $relations;
+    private $relations = [];
+
+    /**
+     * @var string
+     * */
+    private $permission = '';
 
 
     /**
@@ -30,10 +35,9 @@ class ModelRoute implements RouteInterface
      * @param $relations array
      * @param $customs array
      * */
-    public function __construct(string $target, array $relations = [])
+    public function __construct(string $target)
     {
         $this->target = $target;
-        $this->relations = $relations;
     }
 
     /**
@@ -47,9 +51,10 @@ class ModelRoute implements RouteInterface
     /**
      * @param string $target
      */
-    public function setTarget(string $target): void
+    public function setTarget(string $target): self
     {
         $this->target = $target;
+        return $this;
     }
 
     /**
@@ -63,9 +68,27 @@ class ModelRoute implements RouteInterface
     /**
      * @param array $relations
      */
-    public function setRelations(array $relations): void
+    public function setRelations(array $relations): self
     {
         $this->relations = $relations;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPermission(): string
+    {
+        return $this->permission;
+    }
+
+    /**
+     * @param string $permission
+     */
+    public function setPermission(string $permission): self
+    {
+        $this->permission = $permission;
+        return $this;
     }
 
 }

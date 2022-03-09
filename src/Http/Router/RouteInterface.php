@@ -19,7 +19,7 @@ interface RouteInterface
     /**
      * @param string $target
      */
-    public function setTarget(string $target): void;
+    public function setTarget(string $target): self;
 
     /**
      * @return array
@@ -29,6 +29,16 @@ interface RouteInterface
     /**
      * @param array $relations
      */
-    public function setRelations(array $relations): void;
+    public function setRelations(array $relations): self;
+
+    /**
+     * @return string
+     */
+    public function getPermission(): string;
+
+    /**
+     * @param string $permission
+     */
+    public function setPermission(string $permission): self;
 
 }

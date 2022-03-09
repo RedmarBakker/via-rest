@@ -26,7 +26,7 @@ class DynamicRestController extends AbstractRestController implements RestContro
      */
     public static function getModelClass(): string
     {
-        return self::$model;
+        return self::$modelClass;
     }
 
 }

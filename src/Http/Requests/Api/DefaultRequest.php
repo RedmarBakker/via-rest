@@ -14,11 +14,7 @@ class DefaultRequest extends FormRequest implements CrudRequestInterface
      */
     public function authorize()
     {
-        if (env('APP_DEBUG') == true) {
-            return true;
-        }
-
-        return auth()->check();
+        return true;
     }
 
     /**

@@ -19,8 +19,6 @@ use Route;
 use ViaRest\Http\Controllers\Api\RestControllerInterface;
 use ViaRest\Http\Requests\Api\DefaultRequest;
 use ViaRest\Models\DynamicModelInterface;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Validator;
 
 class ViaRest
 {
@@ -105,7 +103,7 @@ class ViaRest
                 }
             }
 
-            Route::get('{any}', function ($any) {
+            Route::any('{any}', function ($any) {
                 return not_found('Invalid Api Route');
             })->where('any', '.*');
 
@@ -120,67 +118,75 @@ class ViaRest
      * @return void
      * @throws \Exception
      */
-    protected static function configureModelRoute(string $url, ModelRoute $route, $idIntegration = true): void
+    protected static function configureModelRoute(string $url, ModelRoute $route, $meIntegration = false): void
     {
-        $urlPostfix = '';
-        if ($idIntegration == true) {
-            $urlPostfix = '/{id}';
+        $urlPostfix = '/{id}';
+        if ($meIntegration == true) {
+            $urlPostfix = '';
         }
 
-        Route::get($url, function (DefaultRequest $request) use ($route) {
-            if (! Auth::user()->tokenCan($route->getPermission() . ':read')) {
-                return forbidden();
-            }
+        if (in_array(AbstractRoute::READ_ALL_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':update'], function() use ($url, $urlPostfix, $route) {
+                Route::get($url, function (DefaultRequest $request) use ($route) {
+                    $controller = new DynamicRestController($route->getTarget());
 
-            $controller = new DynamicRestController($route->getTarget());
+                    return $controller->fetchAll($request);
+                });
+            });
 
-            return $controller->fetchAll($request);
-        });
+            self::registerRoutePermission($route->getPermission() . ':read');
+        }
 
-        Route::get($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
-            if (! Auth::user()->tokenCan($route->getPermission() . ':read')) {
-                return forbidden();
-            }
+        if (in_array(AbstractRoute::READ_ONE_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':read'], function() use ($url, $urlPostfix, $route) {
+                Route::get($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
+                    $controller = new DynamicRestController($route->getTarget());
 
-            $controller = new DynamicRestController($route->getTarget());
+                    return $controller->fetch($request, $id);
+                })->where('id', self::$idValidation);
+            });
 
-            return $controller->fetch($request, $id);
-        })->where('id', self::$idValidation);
+            self::registerRoutePermission($route->getPermission() . ':read');
+        }
 
-        Route::post($url, function (DefaultRequest $request) use ($route) {
-            if (! Auth::user()->tokenCan($route->getPermission() . ':create')) {
-                return forbidden();
-            }
+        if (in_array(AbstractRoute::CREATE_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':create'], function() use ($url, $urlPostfix, $route) {
+                Route::post($url, function (DefaultRequest $request) use ($route) {
+                    $controller = new DynamicRestController($route->getTarget());
 
-            $controller = new DynamicRestController($route->getTarget());
+                    return $controller->create($request);
+                });
+            });
 
-            return $controller->create($request);
-        });
+            self::registerRoutePermission($route->getPermission() . ':create');
+        }
 
-        Route::put($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
-            if (! Auth::user()->tokenCan($route->getPermission() . ':update')) {
-                return forbidden();
-            }
+        if (in_array(AbstractRoute::UPDATE_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':update'], function() use ($url, $urlPostfix, $route) {
+                Route::put($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
+                    $controller = new DynamicRestController($route->getTarget());
 
-            $controller = new DynamicRestController($route->getTarget());
+                    return $controller->update($request, $id);
 
-            return $controller->update($request, $id);
-        })->where('id', self::$idValidation);
+                })->where('id', self::$idValidation);
 
-        Route::delete($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
-            if (! Auth::user()->tokenCan($route->getPermission() . ':delete')) {
-                return forbidden();
-            }
+            });
 
-            $controller = new DynamicRestController($route->getTarget());
+            self::registerRoutePermission($route->getPermission() . ':update');
+        }
 
-            return $controller->destroy($request, $id);
-        })->where('id', self::$idValidation);
+        if (in_array(AbstractRoute::DELETE_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':update'], function() use ($url, $urlPostfix, $route) {
+                Route::delete($url . $urlPostfix, function (DefaultRequest $request, $id) use ($route) {
+                    $controller = new DynamicRestController($route->getTarget());
 
-        self::$routePermissions[] = $route->getPermission() . ':create';
-        self::$routePermissions[] = $route->getPermission() . ':read';
-        self::$routePermissions[] = $route->getPermission() . ':update';
-        self::$routePermissions[] = $route->getPermission() . ':delete';
+                    return $controller->destroy($request, $id);
+
+                })->where('id', self::$idValidation);
+            });
+
+            self::registerRoutePermission($route->getPermission() . ':delete');
+        }
     }
 
     /**
@@ -191,101 +197,103 @@ class ViaRest
      * @return void
      * @throws ConfigurationException
      */
-    protected static function configureControllerRoute(string $url, ControllerRoute $route, $idIntegration = true): void
+    protected static function configureControllerRoute(string $url, ControllerRoute $route, $meIntegration = false): void
     {
         $controllerName = '\\' . $route->getTarget();
 
-        $urlPostfix = '';
-        if ($idIntegration == true) {
-            $urlPostfix = '/{id}';
+        $urlPostfix = '/{id}';
+        if ($meIntegration == true) {
+            $urlPostfix = '';
         }
 
-        Route::get($url, $controllerName . '@fetchAll');
+        if (in_array(AbstractRoute::READ_ALL_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':read'], function() use ($route, $url, $controllerName) {
+                Route::get($url, $controllerName . '@fetchAll');
+            });
 
-        Route::get($url . $urlPostfix, $controllerName . '@fetch')->where('id', self::$idValidation);
+            self::registerRoutePermission($route->getPermission() . ':read');
+        }
 
-        Route::post($url, $controllerName . '@create');
+        if (in_array(AbstractRoute::READ_ONE_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':read'], function () use ($route, $url, $urlPostfix, $controllerName) {
+                Route::get($url . $urlPostfix, $controllerName . '@fetch')->where('id', self::$idValidation);
+            });
 
-        Route::put($url . $urlPostfix, $controllerName . '@update')->where('id', self::$idValidation);
+            self::registerRoutePermission($route->getPermission() . ':read');
+        }
 
-        Route::delete($url . $urlPostfix, $controllerName . '@destroy')->where('id', self::$idValidation);
+        if (in_array(AbstractRoute::CREATE_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':create'], function () use ($route, $url, $controllerName) {
+                Route::post($url, $controllerName . '@create');
+            });
 
-        foreach ($route->getCustoms() as $endpoint => $config) {
-            $method = Request::METHOD_GET;
-            $target = null;
+            self::registerRoutePermission($route->getPermission() . ':create');
+        }
 
-            if (! is_array($config)) {
-                throw new ConfigurationException(sprintf(
-                    'Custom method with name %s does not have the right configuration, expects an array. '.
-                    'See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
-                    $endpoint
-                ));
+        if (in_array(AbstractRoute::UPDATE_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':update'], function () use ($route, $url, $urlPostfix, $controllerName) {
+                Route::put($url . $urlPostfix, $controllerName . '@update')->where('id', self::$idValidation);
+            });
+
+            self::registerRoutePermission($route->getPermission() . ':update');
+        }
+
+        if (in_array(AbstractRoute::DELETE_ACTION, $route->getActions())) {
+            Route::group(['middleware' => $meIntegration ? [] : 'token-can:' . $route->getPermission() . ':delete'], function () use ($route, $url, $urlPostfix, $controllerName) {
+                Route::delete($url . $urlPostfix, $controllerName . '@destroy')->where('id', self::$idValidation);
+            });
+
+            self::registerRoutePermission($route->getPermission() . ':delete');
+        }
+
+        foreach ($route->getEndpoints() as $endpointUri => $endpoint) {
+            if (! $endpoint instanceof Endpoint) {
+                $endpoint = new Endpoint($endpoint);
             }
 
-            $validator = Validator::make($config, [
-                'method' => [Rule::in([
-                    Request::METHOD_GET,
-                    Request::METHOD_POST,
-                    Request::METHOD_PUT,
-                    Request::METHOD_PATCH,
-                    Request::METHOD_DELETE,
-                ])],
-                'target' => ['required'],
-                'id_integration' => ['bool'],
-                'endpoint' => ['string'],
-                'endpoint_where' => ['array']
-            ]);
-
-            try {
-                $input = $validator->validate();
-            } catch (\Exception $e) {
-                throw new ConfigurationException(sprintf(
-                    $validator->errors() .
-                    'See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
-                ));
-            }
-
-            $method         = isset($input['method']) ? $input['method'] : $method;
-            $target         = $input['target'] ?: $target;
-            $idIntegration  = isset($input['id_integration']) ? $input['id_integration'] : $idIntegration;
-            $endpoint       = isset($input['endpoint']) ? $input['endpoint'] : $endpoint;
-            $endpointWhere  = isset($input['endpoint_where']) ? $input['endpoint_where'] : [];
-
-            if ($idIntegration == true) {
-                switch (strtoupper($method)) {
-                    case Request::METHOD_GET:
-                        Route::get($url . '/{root_id}/' . $endpoint, $controllerName . '@' . $target)
-                            ->where(array_merge(['root_id' => self::$idValidation], $endpointWhere));
-                        break;
-                    case Request::METHOD_PUT:
-                        Route::put($url . '/{root_id}/' . $endpoint, $controllerName . '@' . $target)
-                            ->where(array_merge(['root_id' => self::$idValidation], $endpointWhere));
-                        break;
-                    case Request::METHOD_POST:
-                        Route::post($url . '/{root_id}/' . $endpoint, $controllerName . '@' . $target)
-                            ->where(array_merge(['root_id' => self::$idValidation], $endpointWhere));
-                        break;
-                    case Request::METHOD_DELETE:
-                        Route::delete($url . '/{root_id}/' . $endpoint, $controllerName . '@' . $target)
-                            ->where(array_merge(['root_id' => self::$idValidation], $endpointWhere));
-                        break;
+            Route::group(['middleware' => 'token-can:' . $route->getPermission() . ':' . $endpoint->target], function() use ($route, $url, $endpointUri, $endpoint, $controllerName, $meIntegration) {
+                if (! $meIntegration && $endpoint->idIntegration) {
+                    switch (strtoupper($endpoint->method)) {
+                        case Request::METHOD_GET:
+                            Route::get($url . '/{root_id}/' . $endpointUri, $controllerName . '@' . $endpoint->target)
+                                ->where(array_merge(['root_id' => self::$idValidation], $endpoint->where));
+                            break;
+                        case Request::METHOD_PUT:
+                            Route::put($url . '/{root_id}/' . $endpointUri, $controllerName . '@' . $endpoint->target)
+                                ->where(array_merge(['root_id' => self::$idValidation], $endpoint->where));
+                            break;
+                        case Request::METHOD_POST:
+                            Route::post($url . '/{root_id}/' . $endpointUri, $controllerName . '@' . $endpoint->target)
+                                ->where(array_merge(['root_id' => self::$idValidation], $endpoint->where));
+                            break;
+                        case Request::METHOD_DELETE:
+                            Route::delete($url . '/{root_id}/' . $endpointUri, $controllerName . '@' . $endpoint->target)
+                                ->where(array_merge(['root_id' => self::$idValidation], $endpoint->where));
+                            break;
+                    }
+                } else {
+                    switch (strtoupper($endpoint->method)) {
+                        case Request::METHOD_GET:
+                            Route::get($url . '/' . $endpointUri, $controllerName . '@' . $endpoint->target)
+                                ->where($endpoint->where);
+                            break;
+                        case Request::METHOD_PUT:
+                            Route::put($url . '/' . $endpointUri, $controllerName . '@' . $endpoint->target)
+                                ->where($endpoint->where);
+                            break;
+                        case Request::METHOD_POST:
+                            Route::post($url . '/' . $endpointUri, $controllerName . '@' . $endpoint->target)
+                                ->where($endpoint->where);
+                            break;
+                        case Request::METHOD_DELETE:
+                            Route::delete($url . '/' . $endpointUri, $controllerName . '@' . $endpoint->target)
+                                ->where($endpoint->where);
+                            break;
+                    }
                 }
-            } else {
-                switch (strtoupper($method)) {
-                    case Request::METHOD_GET:
-                        Route::get($url . '/' . $endpoint, $controllerName . '@' . $target);
-                        break;
-                    case Request::METHOD_PUT:
-                        Route::put($url . '/' . $endpoint, $controllerName . '@' . $target);
-                        break;
-                    case Request::METHOD_POST:
-                        Route::post($url . '/' . $endpoint, $controllerName . '@' . $target);
-                        break;
-                    case Request::METHOD_DELETE:
-                        Route::delete($url . '/' . $endpoint, $controllerName . '@' . $target);
-                        break;
-                }
-            }
+            });
+
+            self::registerRoutePermission($route->getPermission() . ':' . $endpoint->target);
         }
     }
 
@@ -298,22 +306,24 @@ class ViaRest
      * */
     protected static function configureMeRoute(string $url, MeRoute $route): void
     {
-        Route::group(['middleware' => 'me-injection'], function () use ($url, $route) {
+        Route::group(['middleware' => ['me-injection', 'token-can:' . $route->getLinkedRoute()->getPermission()]], function () use ($url, $route) {
             switch (true) {
                 case $route->getLinkedRoute() instanceof ModelRoute:
 
-                    self::configureModelRoute($url, $route->getLinkedRoute(), false);
+                    self::configureModelRoute($url, $route->getLinkedRoute(), true);
 
                     break;
                 case $route->getLinkedRoute() instanceof ControllerRoute:
 
-                    self::configureControllerRoute($url, $route->getLinkedRoute(), false);
+                    self::configureControllerRoute($url, $route->getLinkedRoute(), true);
 
                     break;
             }
 
             self::configureRelationRoutes($url, $route->getLinkedRoute(), false);
         });
+
+        self::registerRoutePermission($route->getLinkedRoute()->getPermission());
     }
 
     /**
@@ -326,74 +336,50 @@ class ViaRest
      */
     protected static function configureRelationRoutes($url, RouteInterface $route, $idIntegration = true): void
     {
-        foreach ($route->getRelations() as $relation => $relationOptions) {
-            $relationClass = '';
-            $create = false;
-            $attach = false;
-            $softDelete = true;
-            $bidirectional = false;
+        foreach ($route->getRelations() as $endpoint => $relation) {
+            //$bidirectional = false;
+            //$bidirectional  = isset($input['bidirectional']) ? $input['bidirectional'] : $bidirectional;
 
-            if (is_array($relationOptions)) {
-                $validator = Validator::make($relationOptions, [
-                    'relation_class' => ['required'],
-                    'create' => ['bool'],
-                    'attach' => ['bool'],
-                    'soft_delete' => ['bool'],
-                    'bidirectional' => ['bool'],
-                ]);
-
-                try {
-                    $input = $validator->validate();
-                } catch (\Exception $e) {
-                    throw new ConfigurationException(sprintf(
-                        $validator->errors() .
-                        'See the docs: https://github.com/RedmarBakker/via-rest#configuring-your-routes',
-                    ));
-                }
-
-                $relationClass  = $input['relation_class'] ?: $relationClass;
-                $create         = isset($input['create']) ? $input['create'] : $create;
-                $attach         = isset($input['attach']) ? $input['attach'] : $attach;
-                $softDelete     = isset($input['soft_delete']) ? $input['soft_delete'] : $softDelete;
-                $bidirectional  = isset($input['bidirectional']) ? $input['bidirectional'] : $bidirectional;
-            } else {
-                $relationClass = $relationOptions;
+            if (! $relation instanceof Relation) {
+                $relation = new Relation($relation);
             }
+
+            $relationClass  = $relation->relation;
 
             if ($idIntegration == true) {
-                $url = $url .= '/{root_id}';
+                $url .= '/{root_id}';
             }
 
-            Route::get($url . '/' . $relation, function (...$args) use ($route, $relation, $relationClass) {
+            $relationKey = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $endpoint))));
+
+            Route::get($url . '/' . $endpoint, function (...$args) use ($route, $relationKey, $relationClass) {
                 if (count($args) == 1) {
                     list($rootId) = $args;
                 } else {
                     $rootId = Auth::user()->id;
                 }
 
-                $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
-                $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
+                $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relationKey, $relationClass);
 
                 return $controller->fetchAll(app(Request::class));
             })->where('root_id', self::$idValidation);
 
-            if ($create == true) {
-                Route::post($url . '/' . $relation, function (...$args) use ($route, $relation, $relationClass) {
+            if ($relation->canCreate) {
+                Route::post($url . '/' . $endpoint, function (...$args) use ($route, $relationKey, $relationClass) {
                     if (count($args) == 1) {
                         list($rootId) = $args;
                     } else {
                         $rootId = Auth::user()->id;
                     }
 
-                    $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
-                    $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
+                    $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relationKey, $relationClass);
 
                     return $controller->create(app(Request::class));
                 })->where('root_id', self::$idValidation);
             }
 
-            if ($attach == true) {
-                Route::post($url . '/' . $relation . '/{target_id}', function (...$args) use ($route, $relation, $relationClass) {
+            if ($relation->canAttach) {
+                Route::post($url . '/' . $endpoint . '/{target_id}', function (...$args) use ($route, $relationKey, $relationClass) {
                     if (count($args) == 2) {
                         list($targetId, $rootId) = $args;
                     } else {
@@ -401,41 +387,40 @@ class ViaRest
                         $rootId = Auth::user()->id;
                     }
 
-                    $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
-                    $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
+                    $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relationKey, $relationClass);
 
                     return $controller->attach(app(Request::class), $targetId);
                 })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
             }
 
-            if ($softDelete == true) {
-                Route::delete($url . '/' . $relation . '/{target_id}', function (...$args) use ($route, $relation, $relationClass) {
-                    if (count($args) == 2) {
-                        list($targetId, $rootId) = $args;
-                    } else {
-                        list($targetId) = $args;
-                        $rootId = Auth::user()->id;
-                    }
+            if ($relation->canDelete) {
+                if ($relation->softDelete) {
+                    Route::delete($url . '/' . $endpoint . '/{target_id}', function (...$args) use ($route, $relationKey, $relationClass) {
+                        if (count($args) == 2) {
+                            list($targetId, $rootId) = $args;
+                        } else {
+                            list($targetId) = $args;
+                            $rootId = Auth::user()->id;
+                        }
 
-                    $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
-                    $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
+                        $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relationKey, $relationClass);
 
-                    return $controller->detach(app(Request::class), $targetId);
-                })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
-            } else {
-                Route::delete($url . '/' . $relation . '/{target_id}', function (...$args) use ($route, $relation, $relationClass) {
-                    if (count($args) == 2) {
-                        list($targetId, $rootId) = $args;
-                    } else {
-                        list($targetId) = $args;
-                        $rootId = Auth::user()->id;
-                    }
+                        return $controller->detach(app(Request::class), $targetId);
+                    })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
+                } else {
+                    Route::delete($url . '/' . $endpoint . '/{target_id}', function (...$args) use ($route, $relationKey, $relationClass) {
+                        if (count($args) == 2) {
+                            list($targetId, $rootId) = $args;
+                        } else {
+                            list($targetId) = $args;
+                            $rootId = Auth::user()->id;
+                        }
 
-                    $relation = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $relation))));
-                    $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relation, $relationClass);
+                        $controller = new DynamicRestRelationController($route->getTarget(), $rootId, $relationKey, $relationClass);
 
-                    return $controller->destroy(app(Request::class), $targetId);
-                })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
+                        return $controller->destroy(app(Request::class), $targetId);
+                    })->where(['root_id' => self::$idValidation, 'target_id' => self::$idValidation]);
+                }
             }
         }
     }
@@ -444,11 +429,10 @@ class ViaRest
      * Model config
      *
      * @param $model string
-     * @param $relations array
      * @return ModelRoute
      * @throws ConfigurationException
      * */
-    public static function model(string $model, array $relations = []): ModelRoute
+    public static function model(string $model): ModelRoute
     {
         if (! class_exists($model)) {
             throw new ConfigurationException(sprintf(
@@ -476,19 +460,17 @@ class ViaRest
             ));
         }
 
-        return new ModelRoute($model, $relations);
+        return new ModelRoute($model);
     }
 
     /**
      * Controller config
      *
      * @param $controller string
-     * @param $relations array
-     * @param $customs array
      * @return ControllerRoute
      * @throws ConfigurationException
      * */
-    public static function controller($controller, $relations = [], $customs = []): ControllerRoute
+    public static function controller(string $controller): ControllerRoute
     {
         if (! class_exists($controller)) {
             throw new ConfigurationException(sprintf(
@@ -516,7 +498,7 @@ class ViaRest
             ));
         }
 
-        return new ControllerRoute($controller, $relations, $customs);
+        return new ControllerRoute($controller);
     }
 
     /**
@@ -527,6 +509,50 @@ class ViaRest
      * */
     public static function me(RouteInterface $route)
     {
+        $newActionList = [];
+        foreach ($route->getActions() as $requestedAction) {
+            if (in_array($requestedAction, MeRoute::ALLOWED_ACTIONS)) {
+                $newActionList[] = $requestedAction;
+            }
+        }
+
+        $route->setActions($newActionList);
+
         return new MeRoute($route);
     }
+
+    /**
+     * Relation config
+     *
+     * @param string $relation
+     * @return Relation
+     * */
+    public static function relation(string $relation)
+    {
+        return new Relation($relation);
+    }
+
+    /**
+     * Relation config
+     *
+     * @param string $target
+     * @return Endpoint
+     * */
+    public static function endpoint(string $target)
+    {
+        return new Endpoint($target);
+    }
+
+    /**
+     * Registration of all permissions used in the ViaRest api routes
+     *
+     * @param string $permission
+     * */
+    protected static function registerRoutePermission(string $permission): void
+    {
+        if (! in_array($permission, self::$routePermissions)) {
+            self::$routePermissions[] = $permission;
+        }
+    }
+
 }
